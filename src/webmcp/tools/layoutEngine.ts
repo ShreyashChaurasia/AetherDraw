@@ -4,6 +4,36 @@ import type { LayoutDirection } from "../../types";
 import { computeDagreLayout } from "../../layout/dagre";
 import { computeElkLayout } from "../../layout/elk";
 
+function getAnchorPoints(
+  src: { x: number; y: number; width: number; height: number },
+  dst: { x: number; y: number; width: number; height: number },
+  direction: LayoutDirection = "TB"
+): { start: [number, number]; end: [number, number] } {
+  if (direction === "LR") {
+    // Source right edge -> Target left edge
+    return {
+      start: [src.x + src.width, src.y + src.height / 2],
+      end: [dst.x, dst.y + dst.height / 2],
+    };
+  } else if (direction === "RL") {
+    return {
+      start: [src.x, src.y + src.height / 2],
+      end: [dst.x + dst.width, dst.y + dst.height / 2],
+    };
+  } else if (direction === "BT") {
+    return {
+      start: [src.x + src.width / 2, src.y],
+      end: [dst.x + dst.width / 2, dst.y + dst.height],
+    };
+  } else {
+    // Default TB: Source bottom edge -> Target top edge
+    return {
+      start: [src.x + src.width / 2, src.y + src.height],
+      end: [dst.x + dst.width / 2, dst.y],
+    };
+  }
+}
+
 export function createApplyAutoLayoutTool(getAPI: () => ExcalidrawImperativeAPI | null): ModelContextTool {
   return {
     name: "apply_auto_layout",
@@ -59,6 +89,7 @@ export function createApplyAutoLayoutTool(getAPI: () => ExcalidrawImperativeAPI 
 
       const allElements = api.getSceneElements();
       const targetIds = input.elementIds ? new Set(input.elementIds) : null;
+      const direction = input.direction || "TB";
 
       // Extract shapes (nodes)
       const shapes = allElements.filter((el) => {
@@ -96,20 +127,37 @@ export function createApplyAutoLayoutTool(getAPI: () => ExcalidrawImperativeAPI 
       let layoutResult;
       if (input.engine === "elk") {
         layoutResult = await computeElkLayout(layoutNodes, edges, {
-          direction: input.direction || "TB",
+          direction,
           nodeSpacing: input.nodeSpacing,
           rankSpacing: input.rankSpacing,
         });
       } else {
         layoutResult = computeDagreLayout(layoutNodes, edges, {
-          direction: input.direction || "TB",
+          direction,
           nodeSpacing: input.nodeSpacing,
           rankSpacing: input.rankSpacing,
         });
       }
 
-      // Apply new coordinates
+      // Create new position lookup and delta map
+      const nodePosMap = new Map<string, { x: number; y: number; width: number; height: number }>();
+      const nodeDeltaMap = new Map<string, { dx: number; dy: number }>();
+
+      shapes.forEach((s) => {
+        const newPos = layoutResult.positions.get(s.id);
+        if (newPos) {
+          nodeDeltaMap.set(s.id, { dx: newPos.x - s.x, dy: newPos.y - s.y });
+          nodePosMap.set(s.id, { x: newPos.x, y: newPos.y, width: s.width, height: s.height });
+        } else {
+          nodePosMap.set(s.id, { x: s.x, y: s.y, width: s.width, height: s.height });
+        }
+      });
+
+      // Apply new coordinates to shapes, bound text elements, and arrows
       const updatedElements = allElements.map((el) => {
+        if (el.isDeleted) return el;
+
+        // 1. If shape moved:
         const newPos = layoutResult.positions.get(el.id);
         if (newPos) {
           return {
@@ -120,6 +168,61 @@ export function createApplyAutoLayoutTool(getAPI: () => ExcalidrawImperativeAPI 
             updated: Date.now(),
           };
         }
+
+        // 2. If bound text inside a moving container:
+        if (el.type === "text" && (el as any).containerId) {
+          const containerId = (el as any).containerId;
+          const delta = nodeDeltaMap.get(containerId);
+          const containerPos = nodePosMap.get(containerId);
+
+          if (delta && containerPos) {
+            // Re-center text inside moved container
+            const centeredX = containerPos.x + (containerPos.width - el.width) / 2;
+            const centeredY = containerPos.y + (containerPos.height - el.height) / 2;
+
+            return {
+              ...el,
+              x: Math.round(centeredX),
+              y: Math.round(centeredY),
+              version: el.version + 1,
+              updated: Date.now(),
+            };
+          }
+        }
+
+        // 3. If arrow connecting moved shapes:
+        if (el.type === "arrow") {
+          const arrow = el as any;
+          const srcId = arrow.startBinding?.elementId;
+          const dstId = arrow.endBinding?.elementId;
+
+          const srcPos = srcId ? nodePosMap.get(srcId) : null;
+          const dstPos = dstId ? nodePosMap.get(dstId) : null;
+
+          if (srcPos && dstPos) {
+            const anchors = getAnchorPoints(srcPos, dstPos, direction);
+            const startX = Math.round(anchors.start[0]);
+            const startY = Math.round(anchors.start[1]);
+            const endX = Math.round(anchors.end[0]);
+            const endY = Math.round(anchors.end[1]);
+
+            const deltaX = endX - startX;
+            const deltaY = endY - startY;
+
+            return {
+              ...arrow,
+              x: startX,
+              y: startY,
+              points: [
+                [0, 0],
+                [deltaX, deltaY],
+              ],
+              version: arrow.version + 1,
+              updated: Date.now(),
+            };
+          }
+        }
+
         return el;
       });
 

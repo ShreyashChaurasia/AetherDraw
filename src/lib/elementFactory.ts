@@ -5,6 +5,7 @@ import type {
   SemanticCanvasElement,
   SemanticCanvasState,
   CanvasBoundingBox,
+  LayoutDirection,
 } from "../types";
 import {
   DEFAULT_NODE_WIDTH,
@@ -51,8 +52,37 @@ export function mapShapeTypeToExcalidraw(type?: string): "rectangle" | "diamond"
   }
 }
 
+function calculateInitialAnchors(
+  srcPos: { x: number; y: number; width: number; height: number },
+  dstPos: { x: number; y: number; width: number; height: number },
+  direction: LayoutDirection = "TB"
+): { start: [number, number]; end: [number, number] } {
+  if (direction === "LR") {
+    return {
+      start: [srcPos.x + srcPos.width, srcPos.y + srcPos.height / 2],
+      end: [dstPos.x, dstPos.y + dstPos.height / 2],
+    };
+  } else if (direction === "RL") {
+    return {
+      start: [srcPos.x, srcPos.y + srcPos.height / 2],
+      end: [dstPos.x + dstPos.width, dstPos.y + dstPos.height / 2],
+    };
+  } else if (direction === "BT") {
+    return {
+      start: [srcPos.x + srcPos.width / 2, srcPos.y],
+      end: [dstPos.x + dstPos.width / 2, dstPos.y + dstPos.height],
+    };
+  } else {
+    return {
+      start: [srcPos.x + srcPos.width / 2, srcPos.y + srcPos.height],
+      end: [dstPos.x + dstPos.width / 2, dstPos.y],
+    };
+  }
+}
+
 export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDeletedExcalidrawElement[]> {
   const theme = getTheme(spec.theme);
+  const direction = spec.layoutDirection || "TB";
 
   // 1. Prepare layout nodes
   const layoutNodes = spec.nodes.map((node) => {
@@ -73,21 +103,24 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
   let layoutResult;
   if (spec.nodes.length > 0) {
     layoutResult = computeDagreLayout(layoutNodes, layoutEdges, {
-      direction: spec.layoutDirection || "TB",
+      direction,
+      nodeSpacing: 70,
+      rankSpacing: 100,
     });
   } else {
     layoutResult = { positions: new Map(), width: 0, height: 0 };
   }
 
   const skeletons: any[] = [];
+  const nodeGeoMap = new Map<string, { x: number; y: number; width: number; height: number }>();
 
   // Optional Title banner
   if (spec.title) {
     skeletons.push({
       id: generateElementId("title"),
       type: "text",
-      x: 40,
-      y: 10,
+      x: 60,
+      y: 20,
       text: spec.title,
       fontSize: 24,
       fontFamily: EXCALIDRAW_FONTS.NORMAL,
@@ -101,6 +134,12 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
     const dims = getDimensionsForShape(node.type);
     const width = node.width || dims.width;
     const height = node.height || dims.height;
+    const yOffset = spec.title ? 70 : 0;
+
+    const x = pos.x + 60;
+    const y = pos.y + yOffset;
+
+    nodeGeoMap.set(node.id, { x, y, width, height });
 
     const strokeColor = node.strokeColor || theme.nodeStrokes[idx % theme.nodeStrokes.length];
     const backgroundColor = node.backgroundColor || theme.nodeFills[idx % theme.nodeFills.length];
@@ -109,8 +148,8 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
     skeletons.push({
       id: node.id,
       type: mapShapeTypeToExcalidraw(node.type),
-      x: pos.x,
-      y: pos.y + (spec.title ? 60 : 0),
+      x,
+      y,
       width,
       height,
       strokeColor,
@@ -120,18 +159,40 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
       roundness: { type: 2 },
       label: {
         text: node.label,
-        fontSize: 16,
+        fontSize: 15,
         fontFamily: EXCALIDRAW_FONTS.NORMAL,
         strokeColor: theme.textColor,
       },
     });
   });
 
-  // 4. Build arrow connection skeletons
+  // 4. Build arrow connection skeletons with exact geometric endpoints
   spec.connections.forEach((conn, idx) => {
+    const srcGeo = nodeGeoMap.get(conn.from);
+    const dstGeo = nodeGeoMap.get(conn.to);
+
+    let startX = 0;
+    let startY = 0;
+    let deltaX = 100;
+    let deltaY = 100;
+
+    if (srcGeo && dstGeo) {
+      const anchors = calculateInitialAnchors(srcGeo, dstGeo, direction);
+      startX = Math.round(anchors.start[0]);
+      startY = Math.round(anchors.start[1]);
+      deltaX = Math.round(anchors.end[0] - startX);
+      deltaY = Math.round(anchors.end[1] - startY);
+    }
+
     skeletons.push({
       id: generateElementId(`arrow_${idx}`),
       type: "arrow",
+      x: startX,
+      y: startY,
+      points: [
+        [0, 0],
+        [deltaX, deltaY],
+      ],
       strokeColor: theme.arrowColor,
       strokeWidth: 2,
       strokeStyle: conn.style || "solid",
@@ -171,19 +232,33 @@ export function calculateCanvasBounds(elements: readonly ExcalidrawElement[]): C
   let maxY = -Infinity;
 
   for (const el of nonDeleted) {
-    minX = Math.min(minX, el.x);
-    minY = Math.min(minY, el.y);
-    maxX = Math.max(maxX, el.x + el.width);
-    maxY = Math.max(maxY, el.y + el.height);
+    const x = typeof el.x === "number" ? el.x : 0;
+    const y = typeof el.y === "number" ? el.y : 0;
+    const w = typeof el.width === "number" ? el.width : 0;
+    const h = typeof el.height === "number" ? el.height : 0;
+
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x + w);
+    maxY = Math.max(maxY, y + h);
   }
 
+  if (minX === Infinity || isNaN(minX)) {
+    return { minX: 0, minY: 0, maxX: 0, maxY: 0, width: 0, height: 0 };
+  }
+
+  const roundedMinX = Math.round(minX);
+  const roundedMinY = Math.round(minY);
+  const roundedMaxX = Math.round(maxX);
+  const roundedMaxY = Math.round(maxY);
+
   return {
-    minX: Math.round(minX),
-    minY: Math.round(minY),
-    maxX: Math.round(maxX),
-    maxY: Math.round(maxY),
-    width: Math.round(maxX - minX),
-    height: Math.round(maxY - minY),
+    minX: roundedMinX,
+    minY: roundedMinY,
+    maxX: roundedMaxX,
+    maxY: roundedMaxY,
+    width: Math.max(0, roundedMaxX - roundedMinX),
+    height: Math.max(0, roundedMaxY - roundedMinY),
   };
 }
 

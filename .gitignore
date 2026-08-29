@@ -52,3 +52,4 @@ CLAUDE.md
 .claude/
 .gemini/
 *.tsbuildinfo
+public/test-canvas-screenshot.png

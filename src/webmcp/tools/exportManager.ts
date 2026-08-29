@@ -1,4 +1,4 @@
-import { exportToSvg, exportToBlob } from "@excalidraw/excalidraw";
+import { exportToSvg, exportToCanvas } from "@excalidraw/excalidraw";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import type { ModelContextTool } from "../types";
 
@@ -44,28 +44,32 @@ export function createExportCanvasTool(getAPI: () => ExcalidrawImperativeAPI | n
       const padding = input.padding ?? 20;
       const darkMode = input.darkMode ?? false;
 
+      // Generate SVG first
+      const svgElement = await exportToSvg({
+        elements,
+        appState: {
+          ...appState,
+          exportWithDarkMode: darkMode,
+          exportBackground: true,
+        },
+        files,
+        exportPadding: padding,
+      });
+
+      const svgString = new XMLSerializer().serializeToString(svgElement);
+      const svgDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svgString)}`;
+
       if (format === "svg") {
-        const svgElement = await exportToSvg({
-          elements,
-          appState: {
-            ...appState,
-            exportWithDarkMode: darkMode,
-            exportBackground: true,
-          },
-          files,
-          exportPadding: padding,
-        });
-
-        const svgString = new XMLSerializer().serializeToString(svgElement);
-        const dataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svgString)}`;
-
         return {
           format: "svg",
-          dataUrl,
+          dataUrl: svgDataUrl,
           svgContent: svgString,
         };
-      } else {
-        const blob = await exportToBlob({
+      }
+
+      // Convert SVG to PNG data URL via Canvas
+      try {
+        const canvas = await exportToCanvas({
           elements,
           appState: {
             ...appState,
@@ -73,22 +77,40 @@ export function createExportCanvasTool(getAPI: () => ExcalidrawImperativeAPI | n
             exportBackground: true,
           },
           files,
-          mimeType: "image/png",
           exportPadding: padding,
         });
 
-        // Convert blob to base64 data URL
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
+        const pngDataUrl = canvas.toDataURL("image/png");
+        return {
+          format: "png",
+          dataUrl: pngDataUrl,
+          width: canvas.width,
+          height: canvas.height,
+        };
+      } catch (canvasErr) {
+        // Fallback: render SVG to canvas image
+        const pngDataUrl = await new Promise<string>((resolve) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => {
+            const tempCanvas = document.createElement("canvas");
+            tempCanvas.width = img.width || 800;
+            tempCanvas.height = img.height || 600;
+            const ctx = tempCanvas.getContext("2d");
+            if (ctx) {
+              ctx.drawImage(img, 0, 0);
+              resolve(tempCanvas.toDataURL("image/png"));
+            } else {
+              resolve(svgDataUrl);
+            }
+          };
+          img.onerror = () => resolve(svgDataUrl);
+          img.src = svgDataUrl;
         });
 
         return {
           format: "png",
-          dataUrl,
-          sizeBytes: blob.size,
+          dataUrl: pngDataUrl,
         };
       }
     },

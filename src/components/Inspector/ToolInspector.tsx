@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { webMCPRegistry } from "../../webmcp/registry";
 import type { ModelContextTool } from "../../webmcp/types";
 import { Play, Code } from "lucide-react";
@@ -65,12 +65,32 @@ const DEMO_PAYLOADS: Record<string, Record<string, unknown>> = {
 };
 
 export const ToolInspector: React.FC = () => {
-  const tools = webMCPRegistry.getRegisteredTools();
-  const [selectedToolName, setSelectedToolName] = useState<string>(tools[0]?.name || "create_diagram");
+  const [tools, setTools] = useState<ModelContextTool[]>(() => webMCPRegistry.getRegisteredTools());
+  const [selectedToolName, setSelectedToolName] = useState<string>("create_diagram");
   const [customParams, setCustomParams] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"schema" | "execute">("execute");
   const [executing, setExecuting] = useState<boolean>(false);
   const [lastResult, setLastResult] = useState<string | null>(null);
+
+  useEffect(() => {
+    const update = () => {
+      const list = webMCPRegistry.getRegisteredTools();
+      if (list.length > 0) {
+        setTools(list);
+        setSelectedToolName((prev) => (prev ? prev : list[0].name));
+      }
+    };
+
+    update();
+
+    const timer = setInterval(update, 250);
+    const clearTimer = setTimeout(() => clearInterval(timer), 3000);
+
+    return () => {
+      clearInterval(timer);
+      clearTimeout(clearTimer);
+    };
+  }, []);
 
   const selectedTool = tools.find((t) => t.name === selectedToolName) || tools[0];
 
@@ -110,12 +130,12 @@ export const ToolInspector: React.FC = () => {
         </label>
         <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto p-1 bg-neutral-900/60 rounded border border-neutral-800">
           {tools.map((tool) => {
-            const isSelected = tool.name === selectedToolName;
+            const isSelected = tool.name === (selectedTool?.name || selectedToolName);
             return (
               <button
                 key={tool.name}
                 onClick={() => handleSelectTool(tool)}
-                className={`text-left px-2.5 py-1.5 rounded text-xs font-mono truncate transition-colors ${
+                className={`text-left px-2.5 py-1.5 rounded text-xs font-mono truncate transition-colors cursor-pointer ${
                   isSelected
                     ? "bg-indigo-600 text-white font-medium shadow-sm"
                     : "bg-neutral-800/60 text-neutral-300 hover:bg-neutral-800"
@@ -148,7 +168,7 @@ export const ToolInspector: React.FC = () => {
           <div className="flex border-b border-neutral-800 bg-neutral-900/60">
             <button
               onClick={() => setActiveTab("execute")}
-              className={`flex-1 py-2 text-xs font-medium border-b-2 transition-colors flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-2 text-xs font-medium border-b-2 transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === "execute"
                   ? "border-indigo-500 text-indigo-300 bg-neutral-900"
                   : "border-transparent text-neutral-400 hover:text-neutral-200"
@@ -159,7 +179,7 @@ export const ToolInspector: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab("schema")}
-              className={`flex-1 py-2 text-xs font-medium border-b-2 transition-colors flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-2 text-xs font-medium border-b-2 transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === "schema"
                   ? "border-indigo-500 text-indigo-300 bg-neutral-900"
                   : "border-transparent text-neutral-400 hover:text-neutral-200"
@@ -182,7 +202,7 @@ export const ToolInspector: React.FC = () => {
                         const demo = DEMO_PAYLOADS[selectedTool.name] || {};
                         setCustomParams(JSON.stringify(demo, null, 2));
                       }}
-                      className="text-[10px] text-indigo-400 hover:underline"
+                      className="text-[10px] text-indigo-400 hover:underline cursor-pointer"
                     >
                       Reset Payload
                     </button>
