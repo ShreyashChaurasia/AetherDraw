@@ -5,12 +5,16 @@ import { Sidebar } from "./components/UI/Sidebar";
 import { ToolInspector } from "./components/Inspector/ToolInspector";
 import { ToolLog } from "./components/Inspector/ToolLog";
 import { CopilotPanel } from "./components/Copilot/CopilotPanel";
+import { AboutModal } from "./components/UI/AboutModal";
 import { Toast } from "./components/UI/Toast";
 import type { ThemeName } from "./types";
 import { webMCPRegistry } from "./webmcp/registry";
+import { TEMPLATES } from "./templates/catalog";
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"inspector" | "copilot" | null>("inspector");
+  const [currentTheme, setCurrentTheme] = useState<ThemeName>("default");
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
 
   useEffect(() => {
     // Initialize WebMCP registry
@@ -22,6 +26,7 @@ export const App: React.FC = () => {
   };
 
   const handleThemeSelect = async (theme: ThemeName) => {
+    setCurrentTheme(theme);
     const modelContext = (document as any).modelContext;
     if (modelContext) {
       await modelContext.executeTool("apply_theme", { theme });
@@ -48,85 +53,17 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleTemplateSelect = async (template: string) => {
+  const handleTemplateSelect = async (templateKey: string) => {
     const modelContext = (document as any).modelContext;
     if (!modelContext) return;
 
-    if (template === "architecture") {
+    const template = TEMPLATES[templateKey];
+    if (template) {
+      // Always pass the active user theme to preserve theme selection
       await modelContext.executeTool("create_diagram", {
-        title: "Microservices Cloud Architecture",
-        diagramType: "architecture",
-        layoutDirection: "TB",
-        theme: "nord",
+        ...template.spec,
+        theme: currentTheme,
         clearExisting: true,
-        nodes: [
-          { id: "client", label: "Web / Mobile App", type: "rectangle" },
-          { id: "cdn", label: "Cloudflare Edge", type: "cloud" },
-          { id: "gateway", label: "API Gateway", type: "rectangle" },
-          { id: "auth", label: "Auth Service", type: "rectangle" },
-          { id: "orders", label: "Order Service", type: "rectangle" },
-          { id: "inventory", label: "Inventory Service", type: "rectangle" },
-          { id: "db_orders", label: "Orders PostgreSQL", type: "cylinder" },
-          { id: "redis", label: "Redis Session Cache", type: "cylinder" },
-        ],
-        connections: [
-          { from: "client", to: "cdn", label: "HTTPS / TLS" },
-          { from: "cdn", to: "gateway", label: "Origin Request" },
-          { from: "gateway", to: "auth", label: "Validate JWT" },
-          { from: "gateway", to: "orders", label: "Route /orders" },
-          { from: "gateway", to: "inventory", label: "Route /inventory" },
-          { from: "auth", to: "redis", label: "Token Lookup" },
-          { from: "orders", to: "db_orders", label: "ACID Transactions" },
-          { from: "orders", to: "inventory", label: "gRPC Check Stock", style: "dashed" },
-        ],
-      });
-    } else if (template === "flowchart") {
-      await modelContext.executeTool("create_diagram", {
-        title: "User Authentication & Onboarding Flow",
-        diagramType: "flowchart",
-        layoutDirection: "TB",
-        theme: "pastel",
-        clearExisting: true,
-        nodes: [
-          { id: "start", label: "User Visits App", type: "ellipse" },
-          { id: "login_check", label: "Has Active Session?", type: "diamond" },
-          { id: "dashboard", label: "Redirect to Dashboard", type: "rectangle" },
-          { id: "prompt_auth", label: "Display Login / Register", type: "rectangle" },
-          { id: "credentials", label: "Valid Credentials?", type: "diamond" },
-          { id: "2fa", label: "2FA Verified?", type: "diamond" },
-          { id: "error", label: "Show Error & Rate Limit", type: "rectangle" },
-        ],
-        connections: [
-          { from: "start", to: "login_check" },
-          { from: "login_check", to: "dashboard", label: "Yes" },
-          { from: "login_check", to: "prompt_auth", label: "No" },
-          { from: "prompt_auth", to: "credentials", label: "Submit Form" },
-          { from: "credentials", to: "2fa", label: "Yes" },
-          { from: "credentials", to: "error", label: "No" },
-          { from: "2fa", to: "dashboard", label: "Success" },
-          { from: "2fa", to: "error", label: "Fail" },
-        ],
-      });
-    } else if (template === "erd") {
-      await modelContext.executeTool("create_diagram", {
-        title: "E-Commerce Database Entity-Relationship Diagram",
-        diagramType: "erd",
-        layoutDirection: "LR",
-        theme: "blueprint",
-        clearExisting: true,
-        nodes: [
-          { id: "users", label: "Users Table\n(id, email, role, created_at)", type: "rectangle" },
-          { id: "orders", label: "Orders Table\n(id, user_id, total, status)", type: "rectangle" },
-          { id: "items", label: "OrderItems Table\n(id, order_id, product_id, qty)", type: "rectangle" },
-          { id: "products", label: "Products Table\n(id, sku, price, stock)", type: "rectangle" },
-          { id: "payments", label: "Payments Table\n(id, order_id, amount, provider)", type: "rectangle" },
-        ],
-        connections: [
-          { from: "users", to: "orders", label: "1 : N" },
-          { from: "orders", to: "items", label: "1 : N" },
-          { from: "products", to: "items", label: "1 : N" },
-          { from: "orders", to: "payments", label: "1 : 1" },
-        ],
       });
     }
   };
@@ -136,17 +73,22 @@ export const App: React.FC = () => {
       {/* Top Navigation & Controls */}
       <Header
         activeTab={activeTab}
+        currentTheme={currentTheme}
         onToggleTab={handleToggleTab}
         onThemeSelect={handleThemeSelect}
         onLayoutTrigger={handleLayoutTrigger}
         onExportTrigger={handleExportTrigger}
         onTemplateSelect={handleTemplateSelect}
+        onOpenAbout={() => setIsAboutOpen(true)}
       />
 
       {/* Main Workspace */}
       <div className="flex-1 flex overflow-hidden relative">
         <main className="flex-1 h-full relative">
-          <ExcalidrawCanvas theme="dark" />
+          <ExcalidrawCanvas
+            theme="dark"
+            onOpenAbout={() => setIsAboutOpen(true)}
+          />
         </main>
 
         {/* Right Drawer (Inspector / Copilot) */}
@@ -168,6 +110,12 @@ export const App: React.FC = () => {
           {activeTab === "copilot" && <CopilotPanel />}
         </Sidebar>
       </div>
+
+      {/* About & Documentation Modal */}
+      <AboutModal
+        isOpen={isAboutOpen}
+        onClose={() => setIsAboutOpen(false)}
+      />
 
       {/* Toast Notification Container */}
       <Toast />

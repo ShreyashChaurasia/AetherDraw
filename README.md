@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg?style=for-the-badge)](LICENSE)
 [![React](https://img.shields.io/badge/React-19-61dafb?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Excalidraw](https://img.shields.io/badge/Engine-Excalidraw-6965db?style=for-the-badge)](https://excalidraw.com/)
+[![Excalidraw](https://img.shields.io/badge/Engine-Excalidraw-6965db?style=for-the-badge)](https://github.com/excalidraw/excalidraw)
 
 ---
 
@@ -16,7 +16,7 @@
 Visual canvas applications (Excalidraw, Miro, FigJam) are among the most difficult interfaces for AI agents to operate:
 
 * **Without WebMCP:** AI agents have to guess arbitrary pixel coordinates, rely on expensive screenshot vision loops, and simulate fragile mouse drag events on `<canvas>` elements that easily drift or break.
-* **With WebMCP:** **AetherDraw** exposes a rich, semantic tool surface (`navigator.modelContext.registerTool`) directly into the browser execution runtime. AI agents gain spatial awareness, inspect scene ASTs, generate complex cloud architectures, route connections, reorganize layouts, and apply cohesive color themes with precision.
+* **With WebMCP:** **AetherDraw** exposes a rich, semantic tool surface (`document.modelContext.registerTool`) directly into the browser execution runtime. AI agents gain spatial awareness, inspect scene ASTs, generate complex cloud architectures, route connections, reorganize layouts, and apply cohesive color themes with precision.
 
 ```
 +------------------------------------------------------------------------+
@@ -37,102 +37,116 @@ Visual canvas applications (Excalidraw, Miro, FigJam) are among the most difficu
 
 ---
 
+## Attribution & Technology Foundation
+
+AetherDraw is built on top of and extends the open-source **[Excalidraw](https://github.com/excalidraw/excalidraw)** canvas engine (MIT License). We express deep gratitude to the Excalidraw team and community for building the foundation of virtual whiteboard collaboration.
+
+AetherDraw extends Excalidraw into an **agent-native spatial environment** by introducing:
+1. **W3C Web Model Context Protocol (WebMCP):** Standardized tool registration layer on `document.modelContext`.
+2. **Automated Graph Layout Engines:** Integration with Dagre and ELK.js for non-overlapping, automated hierarchical layouts.
+3. **Semantic Scene AST Extraction:** High-level spatial and topological introspection for AI models.
+4. **Live Execution Telemetry & Inspector:** Real-time event stream monitor and interactive schema tester for developers and judges.
+
+---
+
 ## Key Features
 
-- **Agent-Native Spatial Awareness:** The AI does not see blurry pixels; it reads structured canvas elements (`id`, `type`, `x`, `y`, `width`, `height`, `text`, `boundElements`).
-- **Full WebMCP Standard Compliance:** Implements the W3C Web Machine Learning Community Group Draft standard via `navigator.modelContext` / `document.modelContext` with comprehensive fallback polyfills.
-- **In-Browser Auto-Layout Engine:** Powered by Dagre/Elk algorithms to automatically calculate balanced coordinates, eliminating node collisions and messy overlaps.
-- **One-Click Diagram Generators:** High-level schemas for instant Cloud Architectures, Flowcharts, Mindmaps, Sequence Diagrams, ERDs, and User Journeys.
-- **Fine-Grained Element Manipulation:** Create, update, style, connect, group, and delete canvas objects with precision.
-- **Integrated In-Canvas AI Copilot:** Interactive chat drawer to converse with LLMs that execute WebMCP tools in real-time.
-- **Live WebMCP Inspector:** Visual inspector displaying registered tools, schema definitions, live execution logs, and manual test triggers for judges and developers.
-- **Adaptive Color Theming:** Built-in color palettes including *Hand-Drawn Classic, Nordic Frost, Cyberpunk Neon, Minimal Dark, Pastel Dream, and Blueprint*.
+1. **Agent-Native WebMCP Interface:** 11 schema-typed tools registered directly to `document.modelContext` across 4 layers.
+2. **Deterministic Multi-Node Generators:** Single-call generation of architectures, flowcharts, ERDs, and mindmaps with automated spatial layout.
+3. **Bi-Directional Spatial Awareness:** Inspection tools (`get_canvas_state`, `find_elements`, `get_selected_elements`) allow agents to read, understand, and build upon human drawings.
+4. **Intelligent Auto-Layout:** Dagre (Sugiyama layered DAG) and ELK.js (orthogonal edge routing) organize complex graphs and prevent node overlapping.
+5. **Harmonious Styling & Theming:** 7 color palettes (*Hand-Drawn Classic, Nordic Frost, Cyberpunk Neon, Pastel Dream, Blueprint, Minimal Dark, Solarized*).
+6. **Live Telemetry & Developer Inspector:** Built-in WebMCP schema viewer, execution parameter runner, and live latency stream.
+7. **AI Copilot Drawer:** Interactive conversational assistant with optional Gemini API integration.
 
 ---
 
 ## WebMCP Tool Suite Architecture
 
-AetherDraw exposes an extensive tool hierarchy organized into 4 functional layers:
-
 ```
                   +---------------------------------+
-                  |       WebMCP Tool Suite         |
+                  |     document.modelContext       |
                   +----------------+----------------+
+                                   |
          +-------------------------+-------------------------+
          v                         v                         v
 +------------------+      +------------------+      +------------------+
-|  State & Vision  |      | Shape & Connect  |      | Layout & Styling |
+| Layer A: State   |      | Layer B/C: Make  |      | Layer D: Layout  |
 | ---------------- |      | ---------------- |      | ---------------- |
 | get_canvas_state |      | create_diagram   |      | apply_auto_layout|
-| find_elements    |      | add_shape / text |      | set_theme_colors |
-| get_selection    |      | connect_elements |      | group_elements   |
+| find_elements    |      | add_elements     |      | apply_theme      |
+| get_selected_el  |      | update_elements  |      | export_canvas    |
+|                  |      | delete_elements  |      |                  |
+|                  |      | connect_elements |      |                  |
 +------------------+      +------------------+      +------------------+
 ```
 
-### Layer A: Spatial & State Inspection
-* `get_canvas_state`: Returns the semantic tree of active elements on the canvas (bounds, text, hierarchy, connectors).
-* `get_selected_elements`: Retrieves currently selected elements for context-aware contextual edits.
-* `find_elements`: Queries elements by text query, shape type, or color tags.
+### Complete Tool Registry (11 Tools)
 
-### Layer B: High-Level Diagram Generators
-* `create_diagram`: Generates full structured diagrams in a single pass with automatic node layout and arrow bindings.
-
-### Layer C: Fine-Grained Canvas Mutation
-* `add_elements`: Adds shapes (rectangles, diamonds, ellipses, cylinders, clouds), text labels, and sticky notes.
-* `connect_elements`: Creates smart bidirectional arrows with automatic anchor binding between nodes.
-* `update_elements`: Modifies colors, stroke styles, opacity, fill patterns (`hachure`, `solid`, `cross-hatch`), and text content.
-* `delete_elements`: Removes specific nodes or connections.
-
-### Layer D: Layout & Aesthetics Optimization
-* `apply_auto_layout`: Organizes diagram nodes using directed graph layout algorithms (Left-to-Right or Top-to-Bottom).
-* `apply_theme`: Applies curated color themes across selected or entire canvas elements.
-* `export_canvas`: Exports high-resolution SVG or PNG data URLs.
-
----
-
-## Hackathon Alignment (DevPost WebMCP Challenge)
-
-| Judging Criterion | How AetherDraw Excels |
-| :--- | :--- |
-| **WebMCP Leverage (25%)** | Provides granular and high-level tools replacing fragile vision loops with reliable AST manipulations. Demonstrates why WebMCP is the future of web agents. |
-| **Execution (25%)** | Built on top of a rock-solid canvas engine with silky 60fps rendering, pan/zoom, undo/redo, responsive UI, and zero-latency tool execution. |
-| **Potential Impact (25%)** | System design, technical architecture, and brainstorming are universal needs. Conversational diagramming saves hours of manual dragging and formatting. |
-| **Creativity & Ambition (25%)** | Solves the "LLM spatial coordination problem" by combining LLM semantic reasoning with in-browser algorithmic layout calculations via WebMCP. |
+| Tool Name | Category | Annotations | Description |
+|---|---|---|---|
+| `get_canvas_state` | Inspection | `readOnlyHint: true` | Serializes active scene to structured semantic AST with bounds and connections. |
+| `get_selected_elements` | Inspection | `readOnlyHint: true` | Returns elements currently highlighted by the user for context-aware actions. |
+| `find_elements` | Inspection | `readOnlyHint: true` | Searches nodes by text substring, shape type, or color tags. |
+| `create_diagram` | Generation | `category: generation` | Creates structured multi-node diagrams with automated layout in one shot. |
+| `add_elements` | Mutation | `category: mutation` | Inserts individual shapes, text labels, and notes. |
+| `update_elements` | Mutation | `category: mutation` | Updates stroke colors, fill styles, opacity, dimensions, and text. |
+| `delete_elements` | Mutation | `destructiveHint: true` | Soft-deletes elements and their attached arrow bindings. |
+| `connect_elements` | Mutation | `category: mutation` | Draws smart connecting arrows between node IDs. |
+| `apply_auto_layout` | Layout | `category: layout` | Reorganizes coordinates using Dagre or ELK.js (TB, LR, BT, RL). |
+| `apply_theme` | Styling | `category: styling` | Applies cohesive color palettes across the canvas. |
+| `export_canvas` | Export | `readOnlyHint: true` | Exports high-resolution PNG or SVG image data URLs. |
 
 ---
 
 ## Tech Stack
 
-- **Framework:** Next.js / Vite + React 19 (TypeScript)
-- **Canvas Engine:** `@excalidraw/excalidraw`
-- **Layout & Graph Computations:** `dagre` / `elkjs`
-- **WebMCP Integration:** `navigator.modelContext` + Custom Browser Polyfill & Bridge
-- **Styling & UI:** Tailwind CSS, Lucide Icons, Radix UI / Framer Motion
-- **AI Tool Execution:** Multi-provider support (Gemini, OpenAI, Anthropic, WebLLM)
+* **Framework:** React 19 + TypeScript + Vite 6
+* **Canvas Engine:** `@excalidraw/excalidraw` (v0.18.1)
+* **Styling:** Tailwind CSS 4 + Lucide Icons
+* **Protocol:** W3C Web Model Context Protocol (`@mcp-b/webmcp-polyfill`)
+* **Layout Engines:** `@dagrejs/dagre` + `elkjs`
+* **AI Provider:** Google Gemini API / Heuristic Fallback
 
 ---
 
-## Getting Started
+## Quick Start
 
-### Prerequisites
-- Node.js (v18.0.0 or higher)
-- npm / pnpm / yarn
-
-### Installation
+### 1. Clone & Install
 ```bash
-# Clone the repository
 git clone https://github.com/ShreyashChaurasia/AetherDraw.git
 cd AetherDraw
-
-# Install dependencies
 npm install
+```
 
-# Start development server
+### 2. Run Locally
+```bash
 npm run dev
 ```
+Open `http://localhost:3000` in your browser.
+
+### 3. Run Automated WebMCP Tests
+```bash
+npm run test:webmcp
+```
+Executes full headless browser automation testing all 11 WebMCP tools.
+
+### 4. Build for Production
+```bash
+npm run build
+```
+
+---
+
+## Project Links
+
+* **GitHub Repository:** [github.com/ShreyashChaurasia/AetherDraw](https://github.com/ShreyashChaurasia/AetherDraw)
+* **Issue Tracker:** [github.com/ShreyashChaurasia/AetherDraw/issues](https://github.com/ShreyashChaurasia/AetherDraw/issues)
+* **WebMCP Hackathon:** [webmcp.devpost.com](https://webmcp.devpost.com/)
+* **Original Excalidraw Engine:** [github.com/excalidraw/excalidraw](https://github.com/excalidraw/excalidraw)
 
 ---
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+MIT License (c) 2026 Shreyash Chaurasia

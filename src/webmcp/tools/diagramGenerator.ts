@@ -75,7 +75,6 @@ export function createDiagramGeneratorTool(getAPI: () => ExcalidrawImperativeAPI
           type: "string",
           enum: ["default", "nord", "cyberpunk", "pastel", "blueprint", "minimal_dark", "solarized"],
           description: "Color theme palette to apply",
-          default: "default",
         },
         clearExisting: {
           type: "boolean",
@@ -98,13 +97,16 @@ export function createDiagramGeneratorTool(getAPI: () => ExcalidrawImperativeAPI
       const currentElements = input.clearExisting ? [] : api.getSceneElements();
 
       const combined = [...currentElements, ...newElements];
-      const theme = getTheme(input.theme);
+
+      const updateAppState: any = {};
+      if (input.theme) {
+        const theme = getTheme(input.theme);
+        updateAppState.viewBackgroundColor = theme.canvasBackground;
+      }
 
       api.updateScene({
         elements: combined,
-        appState: {
-          viewBackgroundColor: theme.canvasBackground,
-        },
+        ...(Object.keys(updateAppState).length > 0 ? { appState: updateAppState } : {}),
       });
 
       // Smooth zoom to fit newly created diagram

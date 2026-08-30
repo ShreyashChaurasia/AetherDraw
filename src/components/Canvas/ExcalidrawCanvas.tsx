@@ -3,7 +3,14 @@ import { Excalidraw, MainMenu } from "@excalidraw/excalidraw";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import "@excalidraw/excalidraw/index.css";
 import { webMCPRegistry } from "../../webmcp/registry";
-import { ExternalLink } from "lucide-react";
+import {
+  ExternalLink,
+  BookOpen,
+  Bug,
+  Info,
+  Terminal,
+  Video,
+} from "lucide-react";
 
 const GithubIcon: React.FC = () => (
   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -18,9 +25,14 @@ const GithubIcon: React.FC = () => (
 interface ExcalidrawCanvasProps {
   theme?: "light" | "dark";
   onApiReady?: (api: ExcalidrawImperativeAPI) => void;
+  onOpenAbout?: () => void;
 }
 
-export const ExcalidrawCanvas: React.FC<ExcalidrawCanvasProps> = ({ theme = "dark", onApiReady }) => {
+export const ExcalidrawCanvas: React.FC<ExcalidrawCanvasProps> = ({
+  theme = "dark",
+  onApiReady,
+  onOpenAbout,
+}) => {
   useEffect(() => {
     if (typeof window !== "undefined") {
       (window as any).EXCALIDRAW_ASSET_PATH = "/excalidraw-assets/";
@@ -60,24 +72,76 @@ export const ExcalidrawCanvas: React.FC<ExcalidrawCanvasProps> = ({ theme = "dar
           <MainMenu.DefaultItems.ToggleTheme />
           <MainMenu.DefaultItems.ChangeCanvasBackground />
           <MainMenu.Separator />
+
+          {/* Custom About Modal Trigger */}
+          {onOpenAbout && (
+            <MainMenu.Item
+              icon={<Info className="w-4 h-4 text-indigo-400" />}
+              onClick={onOpenAbout}
+            >
+              About AetherDraw
+            </MainMenu.Item>
+          )}
+
+          {/* Documentation Link */}
+          <MainMenu.ItemLink
+            href="https://github.com/ShreyashChaurasia/AetherDraw#readme"
+            target="_blank"
+            rel="noopener noreferrer"
+            icon={<BookOpen className="w-4 h-4 text-indigo-400" />}
+          >
+            Documentation (README)
+          </MainMenu.ItemLink>
+
+          {/* GitHub Issues Link */}
+          <MainMenu.ItemLink
+            href="https://github.com/ShreyashChaurasia/AetherDraw/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            icon={<Bug className="w-4 h-4 text-rose-400" />}
+          >
+            Report an Issue
+          </MainMenu.ItemLink>
+
+          {/* AetherDraw GitHub Repository Link */}
           <MainMenu.ItemLink
             href="https://github.com/ShreyashChaurasia/AetherDraw"
             target="_blank"
             rel="noopener noreferrer"
             icon={<GithubIcon />}
           >
-            GitHub Repository
+            AetherDraw Repository
           </MainMenu.ItemLink>
+
+          {/* DevPost WebMCP Challenge Link */}
           <MainMenu.ItemLink
             href="https://webmcp.devpost.com/"
             target="_blank"
             rel="noopener noreferrer"
-            icon={<ExternalLink className="w-4 h-4" />}
+            icon={<ExternalLink className="w-4 h-4 text-emerald-400" />}
           >
             DevPost WebMCP Challenge
           </MainMenu.ItemLink>
-          <MainMenu.Separator />
-          <MainMenu.DefaultItems.Help />
+
+          {/* Excalidraw Core Attribution Link */}
+          <MainMenu.ItemLink
+            href="https://github.com/excalidraw/excalidraw"
+            target="_blank"
+            rel="noopener noreferrer"
+            icon={<Terminal className="w-4 h-4 text-amber-400" />}
+          >
+            Built with Excalidraw Core
+          </MainMenu.ItemLink>
+
+          {/* Video Demo Link (Placeholder preserved as requested) */}
+          <MainMenu.ItemLink
+            href="https://www.youtube.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            icon={<Video className="w-4 h-4 text-red-400" />}
+          >
+            Video Demo (YouTube)
+          </MainMenu.ItemLink>
         </MainMenu>
       </Excalidraw>
     </div>
