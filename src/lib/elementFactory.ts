@@ -20,7 +20,7 @@ import {
 import { generateElementId } from "./idGenerator";
 import { getTheme } from "../themes/palettes";
 import { computeDagreLayout } from "../layout/dagre";
-import { computeOrthogonalRoute, type NodeRect } from "../layout/router";
+import { computeSmartRoutes, type NodeRect, type EdgeSpec } from "../layout/router";
 
 export function getDimensionsForShape(type?: string): { width: number; height: number } {
   switch (type) {
@@ -41,18 +41,18 @@ export function getDimensionsForNode(label?: string, type?: string): { width: nu
   const maxLineLen = lines.reduce((max, line) => Math.max(max, line.length), 0);
   const lineCount = lines.length;
 
-  let baseWidth = Math.max(DEFAULT_NODE_WIDTH, maxLineLen * 10 + 44);
-  let baseHeight = Math.max(DEFAULT_NODE_HEIGHT, lineCount * 22 + 36);
+  let baseWidth = Math.max(DEFAULT_NODE_WIDTH, maxLineLen * 10 + 48);
+  let baseHeight = Math.max(DEFAULT_NODE_HEIGHT, lineCount * 24 + 36);
 
   if (type === "diamond") {
-    const side = Math.max(baseWidth, baseHeight) * 1.2;
+    const side = Math.max(baseWidth, baseHeight) * 1.25;
     return {
       width: Math.max(DEFAULT_DECISION_WIDTH, Math.round(side)),
       height: Math.max(DEFAULT_DECISION_HEIGHT, Math.round(side)),
     };
   } else if (type === "cylinder" || type === "ellipse") {
     return {
-      width: Math.max(DEFAULT_DATABASE_WIDTH, baseWidth + 20),
+      width: Math.max(DEFAULT_DATABASE_WIDTH, baseWidth + 24),
       height: Math.max(DEFAULT_DATABASE_HEIGHT, baseHeight + 16),
     };
   } else if (type === "cloud") {
@@ -105,22 +105,22 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
   if (spec.nodes.length > 0) {
     layoutResult = computeDagreLayout(layoutNodes, layoutEdges, {
       direction,
-      nodeSpacing: 100,
-      rankSpacing: 120,
+      nodeSpacing: 110,
+      rankSpacing: 130,
     });
   } else {
     layoutResult = { positions: new Map(), width: 0, height: 0 };
   }
 
   const skeletons: any[] = [];
-  const nodeGeoMap = new Map<string, NodeRect>();
+  const nodeRects: NodeRect[] = [];
 
   // Optional Title banner
   if (spec.title) {
     skeletons.push({
       id: generateElementId("title"),
       type: "text",
-      x: 60,
+      x: 80,
       y: 30,
       text: spec.title,
       fontSize: 22,
@@ -137,10 +137,10 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
     const height = node.height || dims.height;
     const yOffset = spec.title ? 80 : 0;
 
-    const x = pos.x + 60;
+    const x = pos.x + 80;
     const y = pos.y + yOffset;
 
-    nodeGeoMap.set(node.id, { x, y, width, height });
+    nodeRects.push({ id: node.id, x, y, width, height });
 
     const strokeColor = node.strokeColor || theme.nodeStrokes[idx % theme.nodeStrokes.length];
     const backgroundColor = node.backgroundColor || theme.nodeFills[idx % theme.nodeFills.length];
@@ -167,16 +167,24 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
     });
   });
 
-  // 4. Build arrow connection skeletons with smart orthogonal routing
-  spec.connections.forEach((conn, idx) => {
-    const srcGeo = nodeGeoMap.get(conn.from);
-    const dstGeo = nodeGeoMap.get(conn.to);
+  // 4. Compute organic smooth cubic Bezier & outer-gutter routes
+  const edgeSpecs: EdgeSpec[] = spec.connections.map((conn, idx) => ({
+    id: generateElementId(`arrow_${idx}`),
+    from: conn.from,
+    to: conn.to,
+    label: conn.label,
+    style: conn.style,
+  }));
 
-    if (srcGeo && dstGeo) {
-      const route = computeOrthogonalRoute(srcGeo, dstGeo, direction);
+  const routeMap = computeSmartRoutes(nodeRects, edgeSpecs, direction);
 
+  edgeSpecs.forEach((edge, idx) => {
+    const route = routeMap.get(edge.id);
+    const conn = spec.connections[idx];
+
+    if (route) {
       skeletons.push({
-        id: generateElementId(`arrow_${idx}`),
+        id: edge.id,
         type: "arrow",
         x: route.startX,
         y: route.startY,
@@ -187,6 +195,7 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
         strokeWidth: 2,
         strokeStyle: conn.style || "solid",
         roughness: theme.roughness,
+        roundness: { type: 2 },
         start: {
           id: conn.from,
         },

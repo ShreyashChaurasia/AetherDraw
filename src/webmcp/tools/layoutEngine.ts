@@ -3,14 +3,14 @@ import type { ModelContextTool } from "../types";
 import type { LayoutDirection } from "../../types";
 import { computeDagreLayout } from "../../layout/dagre";
 import { computeElkLayout } from "../../layout/elk";
-import { computeOrthogonalRoute, type NodeRect } from "../../layout/router";
+import { computeSmartRoutes, type NodeRect, type EdgeSpec } from "../../layout/router";
 
 export function createApplyAutoLayoutTool(getAPI: () => ExcalidrawImperativeAPI | null): ModelContextTool {
   return {
     name: "apply_auto_layout",
     description:
       "Reorganizes the spatial coordinates of elements on the canvas using Dagre or ELK graph layout algorithms. " +
-      "Eliminates messy overlaps, computes clean non-intersecting orthogonal routes, and creates structured hierarchical layouts.",
+      "Generates smooth, organic Bezier curves, eliminates line crossings, and ensures clean outer-gutter routing for feedback loops.",
     inputSchema: {
       type: "object",
       properties: {
@@ -33,12 +33,12 @@ export function createApplyAutoLayoutTool(getAPI: () => ExcalidrawImperativeAPI 
         },
         nodeSpacing: {
           type: "number",
-          default: 100,
+          default: 110,
           description: "Horizontal/vertical spacing between adjacent nodes in px",
         },
         rankSpacing: {
           type: "number",
-          default: 120,
+          default: 130,
           description: "Spacing between successive hierarchy ranks in px",
         },
       },
@@ -77,6 +77,7 @@ export function createApplyAutoLayoutTool(getAPI: () => ExcalidrawImperativeAPI 
       // Extract arrows (edges) connecting these shapes
       const shapeIdSet = new Set(shapes.map((s) => s.id));
       const edges: { source: string; target: string }[] = [];
+      const edgeSpecs: EdgeSpec[] = [];
 
       allElements.forEach((el) => {
         if (el.type === "arrow" && !el.isDeleted) {
@@ -85,6 +86,11 @@ export function createApplyAutoLayoutTool(getAPI: () => ExcalidrawImperativeAPI 
           const dst = arrow.endBinding?.elementId;
           if (src && dst && shapeIdSet.has(src) && shapeIdSet.has(dst)) {
             edges.push({ source: src, target: dst });
+            edgeSpecs.push({
+              id: el.id,
+              from: src,
+              to: dst,
+            });
           }
         }
       });
@@ -99,30 +105,37 @@ export function createApplyAutoLayoutTool(getAPI: () => ExcalidrawImperativeAPI 
       if (input.engine === "elk") {
         layoutResult = await computeElkLayout(layoutNodes, edges, {
           direction,
-          nodeSpacing: input.nodeSpacing ?? 100,
-          rankSpacing: input.rankSpacing ?? 120,
+          nodeSpacing: input.nodeSpacing ?? 110,
+          rankSpacing: input.rankSpacing ?? 130,
         });
       } else {
         layoutResult = computeDagreLayout(layoutNodes, edges, {
           direction,
-          nodeSpacing: input.nodeSpacing ?? 100,
-          rankSpacing: input.rankSpacing ?? 120,
+          nodeSpacing: input.nodeSpacing ?? 110,
+          rankSpacing: input.rankSpacing ?? 130,
         });
       }
 
       // Create new position lookup and delta map
       const nodePosMap = new Map<string, NodeRect>();
       const nodeDeltaMap = new Map<string, { dx: number; dy: number }>();
+      const nodeRects: NodeRect[] = [];
 
       shapes.forEach((s) => {
         const newPos = layoutResult.positions.get(s.id);
+        const rect: NodeRect = newPos
+          ? { id: s.id, x: newPos.x, y: newPos.y, width: s.width, height: s.height }
+          : { id: s.id, x: s.x, y: s.y, width: s.width, height: s.height };
+
         if (newPos) {
           nodeDeltaMap.set(s.id, { dx: newPos.x - s.x, dy: newPos.y - s.y });
-          nodePosMap.set(s.id, { x: newPos.x, y: newPos.y, width: s.width, height: s.height });
-        } else {
-          nodePosMap.set(s.id, { x: s.x, y: s.y, width: s.width, height: s.height });
         }
+        nodePosMap.set(s.id, rect);
+        nodeRects.push(rect);
       });
+
+      // Compute smooth organic routes
+      const routeMap = computeSmartRoutes(nodeRects, edgeSpecs, direction);
 
       // Apply new coordinates to shapes, bound text elements, and arrows
       const updatedElements = allElements.map((el) => {
@@ -162,24 +175,17 @@ export function createApplyAutoLayoutTool(getAPI: () => ExcalidrawImperativeAPI 
 
         // 3. If arrow connecting moved shapes:
         if (el.type === "arrow") {
-          const arrow = el as any;
-          const srcId = arrow.startBinding?.elementId;
-          const dstId = arrow.endBinding?.elementId;
-
-          const srcPos = srcId ? nodePosMap.get(srcId) : null;
-          const dstPos = dstId ? nodePosMap.get(dstId) : null;
-
-          if (srcPos && dstPos) {
-            const route = computeOrthogonalRoute(srcPos, dstPos, direction);
-
+          const route = routeMap.get(el.id);
+          if (route) {
             return {
-              ...arrow,
+              ...el,
               x: route.startX,
               y: route.startY,
               width: route.width,
               height: route.height,
               points: route.points,
-              version: arrow.version + 1,
+              roundness: { type: 2 },
+              version: el.version + 1,
               updated: Date.now(),
             };
           }
