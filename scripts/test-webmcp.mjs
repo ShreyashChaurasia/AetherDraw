@@ -66,22 +66,29 @@ async function run() {
   await page.setViewport({ width: 1400, height: 900 });
 
   page.on('console', (msg) => {
-    const text = msg.text();
-    if (text.includes('[WebMCP]')) {
-      console.log(`  [Browser] ${text}`);
-    }
+    console.log(`  [Browser Console ${msg.type()}] ${msg.text()}`);
+  });
+
+  page.on('pageerror', (err) => {
+    console.error(`  [Browser PageError] ${err.message}`);
   });
 
   console.log('[3/10] Navigating to AetherDraw canvas...');
   await page.goto(URL, { waitUntil: 'networkidle0', timeout: 30000 });
-  await new Promise((r) => setTimeout(r, 1500));
 
-  // TEST 1: Tool Discovery
+  // TEST 1: Tool Discovery with retry loop
   console.log('\n[4/10] Testing WebMCP Tool Discovery (document.modelContext.getTools())...');
-  const tools = await page.evaluate(() => {
-    if (!document.modelContext) return null;
-    return document.modelContext.getTools();
-  });
+  let tools = [];
+  for (let i = 0; i < 25; i++) {
+    tools = await page.evaluate(() => {
+      if (typeof document !== 'undefined' && document.modelContext && typeof document.modelContext.getTools === 'function') {
+        return document.modelContext.getTools();
+      }
+      return [];
+    });
+    if (tools && tools.length >= 11) break;
+    await new Promise((r) => setTimeout(r, 300));
+  }
 
   if (!tools || tools.length < 11) {
     throw new Error(`Expected at least 11 WebMCP tools, found: ${tools?.length || 0}`);
@@ -146,18 +153,17 @@ async function run() {
 
   // TEST 5: Execute add_elements & connect_elements
   console.log('\n[8/10] Testing WebMCP mutation: add_elements & connect_elements...');
-  const addResult = await page.evaluate(async () => {
-    const addRes = await document.modelContext.executeTool('add_elements', {
+  await page.evaluate(async () => {
+    await document.modelContext.executeTool('add_elements', {
       elements: [
         { id: 'copilot_drawer', label: 'In-App AI Copilot', type: 'rectangle', x: 800, y: 300 }
       ]
     });
-    const connRes = await document.modelContext.executeTool('connect_elements', {
+    await document.modelContext.executeTool('connect_elements', {
       connections: [
         { fromId: 'copilot_drawer', toId: 'tool_registry', label: 'In-Browser Tools' }
       ]
     });
-    return { addRes, connRes };
   });
   console.log('  -> Added element and connected arrow successfully');
 

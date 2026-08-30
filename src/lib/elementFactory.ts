@@ -5,7 +5,6 @@ import type {
   SemanticCanvasElement,
   SemanticCanvasState,
   CanvasBoundingBox,
-  LayoutDirection,
 } from "../types";
 import {
   DEFAULT_NODE_WIDTH,
@@ -21,6 +20,7 @@ import {
 import { generateElementId } from "./idGenerator";
 import { getTheme } from "../themes/palettes";
 import { computeDagreLayout } from "../layout/dagre";
+import { computeOrthogonalRoute, type NodeRect } from "../layout/router";
 
 export function getDimensionsForShape(type?: string): { width: number; height: number } {
   switch (type) {
@@ -34,6 +34,35 @@ export function getDimensionsForShape(type?: string): { width: number; height: n
     default:
       return { width: DEFAULT_NODE_WIDTH, height: DEFAULT_NODE_HEIGHT };
   }
+}
+
+export function getDimensionsForNode(label?: string, type?: string): { width: number; height: number } {
+  const lines = (label || "").split("\n");
+  const maxLineLen = lines.reduce((max, line) => Math.max(max, line.length), 0);
+  const lineCount = lines.length;
+
+  let baseWidth = Math.max(DEFAULT_NODE_WIDTH, maxLineLen * 10 + 44);
+  let baseHeight = Math.max(DEFAULT_NODE_HEIGHT, lineCount * 22 + 36);
+
+  if (type === "diamond") {
+    const side = Math.max(baseWidth, baseHeight) * 1.2;
+    return {
+      width: Math.max(DEFAULT_DECISION_WIDTH, Math.round(side)),
+      height: Math.max(DEFAULT_DECISION_HEIGHT, Math.round(side)),
+    };
+  } else if (type === "cylinder" || type === "ellipse") {
+    return {
+      width: Math.max(DEFAULT_DATABASE_WIDTH, baseWidth + 20),
+      height: Math.max(DEFAULT_DATABASE_HEIGHT, baseHeight + 16),
+    };
+  } else if (type === "cloud") {
+    return {
+      width: Math.max(DEFAULT_CLOUD_WIDTH, baseWidth + 40),
+      height: Math.max(DEFAULT_CLOUD_HEIGHT, baseHeight + 24),
+    };
+  }
+
+  return { width: Math.round(baseWidth), height: Math.round(baseHeight) };
 }
 
 export function mapShapeTypeToExcalidraw(type?: string): "rectangle" | "diamond" | "ellipse" | "text" {
@@ -52,41 +81,13 @@ export function mapShapeTypeToExcalidraw(type?: string): "rectangle" | "diamond"
   }
 }
 
-function calculateInitialAnchors(
-  srcPos: { x: number; y: number; width: number; height: number },
-  dstPos: { x: number; y: number; width: number; height: number },
-  direction: LayoutDirection = "TB"
-): { start: [number, number]; end: [number, number] } {
-  if (direction === "LR") {
-    return {
-      start: [srcPos.x + srcPos.width, srcPos.y + srcPos.height / 2],
-      end: [dstPos.x, dstPos.y + dstPos.height / 2],
-    };
-  } else if (direction === "RL") {
-    return {
-      start: [srcPos.x, srcPos.y + srcPos.height / 2],
-      end: [dstPos.x + dstPos.width, dstPos.y + dstPos.height / 2],
-    };
-  } else if (direction === "BT") {
-    return {
-      start: [srcPos.x + srcPos.width / 2, srcPos.y],
-      end: [dstPos.x + dstPos.width / 2, dstPos.y + dstPos.height],
-    };
-  } else {
-    return {
-      start: [srcPos.x + srcPos.width / 2, srcPos.y + srcPos.height],
-      end: [dstPos.x + dstPos.width / 2, dstPos.y],
-    };
-  }
-}
-
 export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDeletedExcalidrawElement[]> {
   const theme = getTheme(spec.theme);
   const direction = spec.layoutDirection || "TB";
 
-  // 1. Prepare layout nodes
+  // 1. Prepare layout nodes with dynamic label sizing
   const layoutNodes = spec.nodes.map((node) => {
-    const dims = getDimensionsForShape(node.type);
+    const dims = getDimensionsForNode(node.label, node.type);
     return {
       id: node.id,
       width: node.width || dims.width,
@@ -104,15 +105,15 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
   if (spec.nodes.length > 0) {
     layoutResult = computeDagreLayout(layoutNodes, layoutEdges, {
       direction,
-      nodeSpacing: 70,
-      rankSpacing: 100,
+      nodeSpacing: 100,
+      rankSpacing: 120,
     });
   } else {
     layoutResult = { positions: new Map(), width: 0, height: 0 };
   }
 
   const skeletons: any[] = [];
-  const nodeGeoMap = new Map<string, { x: number; y: number; width: number; height: number }>();
+  const nodeGeoMap = new Map<string, NodeRect>();
 
   // Optional Title banner
   if (spec.title) {
@@ -120,9 +121,9 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
       id: generateElementId("title"),
       type: "text",
       x: 60,
-      y: 20,
+      y: 30,
       text: spec.title,
-      fontSize: 24,
+      fontSize: 22,
       fontFamily: EXCALIDRAW_FONTS.NORMAL,
       strokeColor: theme.textColor,
     });
@@ -131,10 +132,10 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
   // 3. Build shape skeletons
   spec.nodes.forEach((node, idx) => {
     const pos = layoutResult.positions.get(node.id) || { x: node.x ?? 100, y: node.y ?? 100 };
-    const dims = getDimensionsForShape(node.type);
+    const dims = getDimensionsForNode(node.label, node.type);
     const width = node.width || dims.width;
     const height = node.height || dims.height;
-    const yOffset = spec.title ? 70 : 0;
+    const yOffset = spec.title ? 80 : 0;
 
     const x = pos.x + 60;
     const y = pos.y + yOffset;
@@ -159,62 +160,52 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
       roundness: { type: 2 },
       label: {
         text: node.label,
-        fontSize: 15,
+        fontSize: 14,
         fontFamily: EXCALIDRAW_FONTS.NORMAL,
         strokeColor: theme.textColor,
       },
     });
   });
 
-  // 4. Build arrow connection skeletons with exact geometric endpoints
+  // 4. Build arrow connection skeletons with smart orthogonal routing
   spec.connections.forEach((conn, idx) => {
     const srcGeo = nodeGeoMap.get(conn.from);
     const dstGeo = nodeGeoMap.get(conn.to);
 
-    let startX = 0;
-    let startY = 0;
-    let deltaX = 100;
-    let deltaY = 100;
-
     if (srcGeo && dstGeo) {
-      const anchors = calculateInitialAnchors(srcGeo, dstGeo, direction);
-      startX = Math.round(anchors.start[0]);
-      startY = Math.round(anchors.start[1]);
-      deltaX = Math.round(anchors.end[0] - startX);
-      deltaY = Math.round(anchors.end[1] - startY);
-    }
+      const route = computeOrthogonalRoute(srcGeo, dstGeo, direction);
 
-    skeletons.push({
-      id: generateElementId(`arrow_${idx}`),
-      type: "arrow",
-      x: startX,
-      y: startY,
-      points: [
-        [0, 0],
-        [deltaX, deltaY],
-      ],
-      strokeColor: theme.arrowColor,
-      strokeWidth: 2,
-      strokeStyle: conn.style || "solid",
-      roughness: theme.roughness,
-      start: {
-        id: conn.from,
-      },
-      end: {
-        id: conn.to,
-      },
-      startArrowhead: conn.startArrowhead && conn.startArrowhead !== "none" ? conn.startArrowhead : null,
-      endArrowhead: conn.endArrowhead && conn.endArrowhead !== "none" ? conn.endArrowhead : "arrow",
-      ...(conn.label
-        ? {
-            label: {
-              text: conn.label,
-              fontSize: 13,
-              fontFamily: EXCALIDRAW_FONTS.NORMAL,
-            },
-          }
-        : {}),
-    });
+      skeletons.push({
+        id: generateElementId(`arrow_${idx}`),
+        type: "arrow",
+        x: route.startX,
+        y: route.startY,
+        width: route.width,
+        height: route.height,
+        points: route.points,
+        strokeColor: theme.arrowColor,
+        strokeWidth: 2,
+        strokeStyle: conn.style || "solid",
+        roughness: theme.roughness,
+        start: {
+          id: conn.from,
+        },
+        end: {
+          id: conn.to,
+        },
+        startArrowhead: conn.startArrowhead && conn.startArrowhead !== "none" ? conn.startArrowhead : null,
+        endArrowhead: conn.endArrowhead && conn.endArrowhead !== "none" ? conn.endArrowhead : "arrow",
+        ...(conn.label
+          ? {
+              label: {
+                text: conn.label,
+                fontSize: 12,
+                fontFamily: EXCALIDRAW_FONTS.NORMAL,
+              },
+            }
+          : {}),
+      });
+    }
   });
 
   return convertToExcalidrawElements(skeletons, { regenerateIds: false });
@@ -268,12 +259,10 @@ export function toSemanticElement(
 ): SemanticCanvasElement {
   let textContent: string | undefined;
 
-  // If text element directly
   if (el.type === "text") {
     textContent = (el as any).text;
   }
 
-  // If container shape with bound text
   if (el.boundElements) {
     for (const bound of el.boundElements) {
       if (bound.type === "text") {
@@ -286,7 +275,6 @@ export function toSemanticElement(
     }
   }
 
-  // Find connections
   const connectedTo: string[] = [];
   if (el.type === "arrow") {
     const arrow = el as any;
@@ -330,7 +318,6 @@ export function extractSemanticCanvasState(
 ): SemanticCanvasState {
   const activeElements = elements.filter((el) => !el.isDeleted);
   const semanticElements = activeElements
-    // filter out internal bound text elements to avoid duplicate reporting in semantic AST
     .filter((el) => !(el.type === "text" && (el as any).containerId))
     .map((el) => toSemanticElement(el, activeElements));
 

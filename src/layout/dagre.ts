@@ -17,16 +17,18 @@ export function computeDagreLayout(
     rankdir,
     nodesep,
     ranksep,
-    marginx: 40,
-    marginy: 40,
+    marginx: 60,
+    marginy: 60,
+    align: "UL",
+    ranker: "network-simplex",
   });
 
   g.setDefaultEdgeLabel(() => ({}));
 
   for (const node of nodes) {
     g.setNode(node.id, {
-      width: Math.max(node.width, 50),
-      height: Math.max(node.height, 30),
+      width: Math.max(node.width, 60),
+      height: Math.max(node.height, 40),
     });
   }
 

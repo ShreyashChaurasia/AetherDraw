@@ -3,12 +3,13 @@ import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import type { ModelContextTool } from "../types";
 import { generateElementId } from "../../lib/idGenerator";
 import { EXCALIDRAW_FONTS } from "../../lib/constants";
+import { computeOrthogonalRoute } from "../../layout/router";
 
 export function createConnectElementsTool(getAPI: () => ExcalidrawImperativeAPI | null): ModelContextTool {
   return {
     name: "connect_elements",
     description:
-      "Draws smart connecting arrows between existing element IDs with automatic anchor attachment.",
+      "Draws smart connecting arrows between existing element IDs with automatic anchor attachment and non-intersecting orthogonal routing.",
     inputSchema: {
       type: "object",
       properties: {
@@ -53,9 +54,18 @@ export function createConnectElementsTool(getAPI: () => ExcalidrawImperativeAPI 
           );
         }
 
+        const srcGeo = { x: fromEl.x, y: fromEl.y, width: fromEl.width, height: fromEl.height };
+        const dstGeo = { x: toEl.x, y: toEl.y, width: toEl.width, height: toEl.height };
+        const route = computeOrthogonalRoute(srcGeo, dstGeo, "TB");
+
         skeletons.push({
           id: generateElementId("arrow"),
           type: "arrow",
+          x: route.startX,
+          y: route.startY,
+          width: route.width,
+          height: route.height,
+          points: route.points,
           strokeColor: conn.strokeColor || "#475569",
           strokeWidth: 2,
           strokeStyle: conn.strokeStyle || "solid",
@@ -68,7 +78,7 @@ export function createConnectElementsTool(getAPI: () => ExcalidrawImperativeAPI 
             ? {
                 label: {
                   text: conn.label,
-                  fontSize: 13,
+                  fontSize: 12,
                   fontFamily: EXCALIDRAW_FONTS.NORMAL,
                 },
               }

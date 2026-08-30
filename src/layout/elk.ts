@@ -38,12 +38,13 @@ export async function computeElkLayout(
       "elk.spacing.nodeNode": nodeSpacing,
       "elk.layered.spacing.nodeNodeBetweenLayers": rankSpacing,
       "elk.edgeRouting": edgeRouting,
-      "elk.padding": "[top=40,left=40,bottom=40,right=40]",
+      "elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",
+      "elk.padding": "[top=60,left=60,bottom=60,right=60]",
     },
     children: nodes.map((n) => ({
       id: n.id,
-      width: Math.max(n.width, 50),
-      height: Math.max(n.height, 30),
+      width: Math.max(n.width, 60),
+      height: Math.max(n.height, 40),
     })),
     edges: edges.map((e, idx) => ({
       id: `e_${idx}_${e.source}_${e.target}`,

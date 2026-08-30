@@ -3,43 +3,14 @@ import type { ModelContextTool } from "../types";
 import type { LayoutDirection } from "../../types";
 import { computeDagreLayout } from "../../layout/dagre";
 import { computeElkLayout } from "../../layout/elk";
-
-function getAnchorPoints(
-  src: { x: number; y: number; width: number; height: number },
-  dst: { x: number; y: number; width: number; height: number },
-  direction: LayoutDirection = "TB"
-): { start: [number, number]; end: [number, number] } {
-  if (direction === "LR") {
-    // Source right edge -> Target left edge
-    return {
-      start: [src.x + src.width, src.y + src.height / 2],
-      end: [dst.x, dst.y + dst.height / 2],
-    };
-  } else if (direction === "RL") {
-    return {
-      start: [src.x, src.y + src.height / 2],
-      end: [dst.x + dst.width, dst.y + dst.height / 2],
-    };
-  } else if (direction === "BT") {
-    return {
-      start: [src.x + src.width / 2, src.y],
-      end: [dst.x + dst.width / 2, dst.y + dst.height],
-    };
-  } else {
-    // Default TB: Source bottom edge -> Target top edge
-    return {
-      start: [src.x + src.width / 2, src.y + src.height],
-      end: [dst.x + dst.width / 2, dst.y],
-    };
-  }
-}
+import { computeOrthogonalRoute, type NodeRect } from "../../layout/router";
 
 export function createApplyAutoLayoutTool(getAPI: () => ExcalidrawImperativeAPI | null): ModelContextTool {
   return {
     name: "apply_auto_layout",
     description:
       "Reorganizes the spatial coordinates of elements on the canvas using Dagre or ELK graph layout algorithms. " +
-      "Eliminates messy overlaps and creates clean, structured hierarchical layouts.",
+      "Eliminates messy overlaps, computes clean non-intersecting orthogonal routes, and creates structured hierarchical layouts.",
     inputSchema: {
       type: "object",
       properties: {
@@ -62,12 +33,12 @@ export function createApplyAutoLayoutTool(getAPI: () => ExcalidrawImperativeAPI 
         },
         nodeSpacing: {
           type: "number",
-          default: 60,
+          default: 100,
           description: "Horizontal/vertical spacing between adjacent nodes in px",
         },
         rankSpacing: {
           type: "number",
-          default: 80,
+          default: 120,
           description: "Spacing between successive hierarchy ranks in px",
         },
       },
@@ -128,19 +99,19 @@ export function createApplyAutoLayoutTool(getAPI: () => ExcalidrawImperativeAPI 
       if (input.engine === "elk") {
         layoutResult = await computeElkLayout(layoutNodes, edges, {
           direction,
-          nodeSpacing: input.nodeSpacing,
-          rankSpacing: input.rankSpacing,
+          nodeSpacing: input.nodeSpacing ?? 100,
+          rankSpacing: input.rankSpacing ?? 120,
         });
       } else {
         layoutResult = computeDagreLayout(layoutNodes, edges, {
           direction,
-          nodeSpacing: input.nodeSpacing,
-          rankSpacing: input.rankSpacing,
+          nodeSpacing: input.nodeSpacing ?? 100,
+          rankSpacing: input.rankSpacing ?? 120,
         });
       }
 
       // Create new position lookup and delta map
-      const nodePosMap = new Map<string, { x: number; y: number; width: number; height: number }>();
+      const nodePosMap = new Map<string, NodeRect>();
       const nodeDeltaMap = new Map<string, { dx: number; dy: number }>();
 
       shapes.forEach((s) => {
@@ -176,7 +147,6 @@ export function createApplyAutoLayoutTool(getAPI: () => ExcalidrawImperativeAPI 
           const containerPos = nodePosMap.get(containerId);
 
           if (delta && containerPos) {
-            // Re-center text inside moved container
             const centeredX = containerPos.x + (containerPos.width - el.width) / 2;
             const centeredY = containerPos.y + (containerPos.height - el.height) / 2;
 
@@ -200,23 +170,15 @@ export function createApplyAutoLayoutTool(getAPI: () => ExcalidrawImperativeAPI 
           const dstPos = dstId ? nodePosMap.get(dstId) : null;
 
           if (srcPos && dstPos) {
-            const anchors = getAnchorPoints(srcPos, dstPos, direction);
-            const startX = Math.round(anchors.start[0]);
-            const startY = Math.round(anchors.start[1]);
-            const endX = Math.round(anchors.end[0]);
-            const endY = Math.round(anchors.end[1]);
-
-            const deltaX = endX - startX;
-            const deltaY = endY - startY;
+            const route = computeOrthogonalRoute(srcPos, dstPos, direction);
 
             return {
               ...arrow,
-              x: startX,
-              y: startY,
-              points: [
-                [0, 0],
-                [deltaX, deltaY],
-              ],
+              x: route.startX,
+              y: route.startY,
+              width: route.width,
+              height: route.height,
+              points: route.points,
               version: arrow.version + 1,
               updated: Date.now(),
             };
@@ -227,7 +189,7 @@ export function createApplyAutoLayoutTool(getAPI: () => ExcalidrawImperativeAPI 
       });
 
       api.updateScene({ elements: updatedElements });
-      api.scrollToContent(shapes, { fitToViewport: true, animate: true, duration: 400 });
+      api.scrollToContent(shapes, { fitToViewport: true, viewportZoomFactor: 0.85, animate: true, duration: 400 });
 
       return {
         success: true,
