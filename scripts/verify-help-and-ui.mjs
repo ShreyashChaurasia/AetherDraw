@@ -46,27 +46,48 @@ async function run() {
   await page.setViewport({ width: 1400, height: 900 });
   await page.goto(URL, { waitUntil: 'networkidle0', timeout: 30000 });
 
-  // 1. Close the sidebar to see the full clean canvas view
-  await page.evaluate(() => {
-    const closeBtn = document.querySelector('button[title="Close sidebar"]');
-    if (closeBtn) closeBtn.click();
-  });
-  await new Promise((r) => setTimeout(r, 500));
+  // 1. Capture clean UI view
+  console.log('1. Capturing top-right toolbar with AetherDraw on the right...');
+  await page.screenshot({ path: path.resolve('public/v6-top-right-header.png') });
+  console.log('   Saved: public/v6-top-right-header.png');
 
-  console.log('1. Capturing clean canvas view with closed sidebar...');
-  await page.screenshot({ path: path.resolve('public/v5-clean-canvas.png') });
-  console.log('   Saved: public/v5-clean-canvas.png');
-
-  // 2. Open Excalidraw Help Dialog via bottom-right button
-  console.log('2. Clicking help button...');
+  // 2. Open Excalidraw Help Dialog by clicking the bottom-right ? button
+  console.log('2. Opening Help Dialog via bottom-right ? button...');
   await page.evaluate(() => {
-    const helpBtn = document.querySelector('.help-icon') || Array.from(document.querySelectorAll('button')).find(b => b.textContent?.includes('?') || b.getAttribute('aria-label')?.includes('Help'));
+    // Find the bottom right ? button in Excalidraw footer
+    const helpBtn = document.querySelector('.help-icon') || 
+                    document.querySelector('button[aria-label="Help"]') ||
+                    Array.from(document.querySelectorAll('button')).find(b => b.textContent?.trim() === '?');
     if (helpBtn) helpBtn.click();
   });
   await new Promise((r) => setTimeout(r, 800));
 
-  await page.screenshot({ path: path.resolve('public/v5-help-dialog.png') });
-  console.log('   Saved: public/v5-help-dialog.png');
+  await page.screenshot({ path: path.resolve('public/v6-help-dialog.png') });
+  console.log('   Saved: public/v6-help-dialog.png');
+
+  // 3. Inspect the Help Dialog link hrefs
+  const helpLinks = await page.evaluate(() => {
+    const links = Array.from(document.querySelectorAll('.HelpDialog__btn, .HelpDialog a'));
+    return links.map((l) => ({ text: l.textContent?.trim(), href: l.getAttribute('href') }));
+  });
+  console.log('   Help Dialog Links Detected:', helpLinks);
+
+  // 4. Click AetherDraw Title in the top-right to test AboutModal
+  console.log('3. Testing AetherDraw Title click to open AboutModal...');
+  await page.evaluate(() => {
+    // Close help dialog if open (press escape)
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  });
+  await new Promise((r) => setTimeout(r, 400));
+
+  await page.evaluate(() => {
+    const aetherBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent?.includes('AetherDraw'));
+    if (aetherBtn) aetherBtn.click();
+  });
+  await new Promise((r) => setTimeout(r, 600));
+
+  await page.screenshot({ path: path.resolve('public/v6-about-modal.png') });
+  console.log('   Saved: public/v6-about-modal.png');
 
   await browser.close();
   if (viteProcess) viteProcess.kill();

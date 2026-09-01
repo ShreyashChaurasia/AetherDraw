@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
+  Layers,
   LayoutGrid,
   Palette,
   Terminal,
   Sparkles,
   ChevronDown,
-  Info,
   ArrowDownUp,
   ArrowLeftRight,
+  Download,
 } from "lucide-react";
 import { TEMPLATES } from "../../templates/catalog";
 import { THEMES } from "../../themes/palettes";
@@ -30,6 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleTab,
   onThemeSelect,
   onLayoutTrigger,
+  onExportTrigger,
   onTemplateSelect,
   onOpenAbout,
 }) => {
@@ -55,10 +57,10 @@ export const Header: React.FC<HeaderProps> = ({
     <div
       ref={containerRef}
       className={`fixed top-3 z-30 flex items-center gap-2 select-none pointer-events-auto transition-all duration-300 ${
-        "right-3"
+        activeTab !== null ? "right-[400px]" : "right-3"
       }`}
     >
-      {/* Compact Floating Island (Templates, Themes, Layout & Extensions) */}
+      {/* Floating Island: Options Menu, Inspector, Copilot & AetherDraw Title */}
       <div className="flex items-center gap-1.5 p-1 bg-neutral-900/90 backdrop-blur-md border border-neutral-800 rounded-xl shadow-2xl">
         {/* Templates Dropdown */}
         <div className="relative">
@@ -191,6 +193,15 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
+        {/* Export Quick Button */}
+        <button
+          onClick={() => onExportTrigger("png")}
+          className="p-1.5 rounded-lg text-neutral-300 hover:bg-neutral-800/80 hover:text-white transition-colors cursor-pointer"
+          title="Export Canvas to PNG"
+        >
+          <Download className="w-3.5 h-3.5 text-neutral-400" />
+        </button>
+
         <div className="w-[1px] h-3.5 bg-neutral-800 my-auto" />
 
         {/* WebMCP Inspector Trigger */}
@@ -221,13 +232,20 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="hidden sm:inline">AI Copilot</span>
         </button>
 
-        {/* About Trigger */}
+        <div className="w-[1px] h-3.5 bg-neutral-800 my-auto" />
+
+        {/* AetherDraw Title on the Right (Click to open About & References) */}
         <button
           onClick={onOpenAbout}
-          className="p-1.5 rounded-lg text-neutral-400 hover:bg-neutral-800/80 hover:text-neutral-200 transition-colors cursor-pointer"
-          title="About & Attribution"
+          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-neutral-800/80 transition-colors cursor-pointer text-left group"
+          title="About AetherDraw & Project References"
         >
-          <Info className="w-3.5 h-3.5" />
+          <div className="w-4 h-4 rounded bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center">
+            <Layers className="w-2.5 h-2.5 text-indigo-400" />
+          </div>
+          <span className="text-xs font-bold text-neutral-100 group-hover:text-indigo-300 transition-colors">
+            AetherDraw
+          </span>
         </button>
       </div>
     </div>

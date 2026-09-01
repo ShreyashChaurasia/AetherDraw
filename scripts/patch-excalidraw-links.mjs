@@ -1,45 +1,90 @@
 import fs from 'fs';
 import path from 'path';
 
-const filesToPatch = [
-  'node_modules/@excalidraw/excalidraw/dist/prod/index.js',
-  'node_modules/@excalidraw/excalidraw/dist/dev/index.js',
-];
-
-for (const relPath of filesToPatch) {
-  const filePath = path.resolve(relPath);
-  if (!fs.existsSync(filePath)) continue;
+function patchFile(filePath) {
+  if (!fs.existsSync(filePath)) return;
 
   let content = fs.readFileSync(filePath, 'utf-8');
+  let modified = false;
 
-  // Replace Documentation link
-  content = content.replace(
-    'href:"https://docs.excalidraw.com"',
-    'href:"https://github.com/ShreyashChaurasia/AetherDraw#readme"'
-  );
+  // 1. Replace Documentation link
+  if (/https?:\/\/docs\.excalidraw\.com[^\s"']*/.test(content)) {
+    content = content.replace(
+      /https?:\/\/docs\.excalidraw\.com[^\s"']*/g,
+      'https://github.com/ShreyashChaurasia/AetherDraw#readme'
+    );
+    modified = true;
+  }
 
-  // Replace Blog link with Repo link or remove
-  content = content.replace(
-    'href:"https://plus.excalidraw.com/blog"',
-    'href:"https://github.com/ShreyashChaurasia/AetherDraw"'
-  );
-  content = content.replace(
-    'href:"https://blog.excalidraw.com"',
-    'href:"https://github.com/ShreyashChaurasia/AetherDraw"'
-  );
+  // 2. Replace Blog link with AetherDraw GitHub Repository
+  if (/https?:\/\/(?:plus\.)?blog\.excalidraw\.com[^\s"']*/.test(content) || /https?:\/\/plus\.excalidraw\.com\/blog[^\s"']*/.test(content)) {
+    content = content.replace(
+      /https?:\/\/(?:plus\.)?blog\.excalidraw\.com[^\s"']*/g,
+      'https://github.com/ShreyashChaurasia/AetherDraw'
+    );
+    content = content.replace(
+      /https?:\/\/plus\.excalidraw\.com\/blog[^\s"']*/g,
+      'https://github.com/ShreyashChaurasia/AetherDraw'
+    );
+    modified = true;
+  }
 
-  // Replace Issues link
-  content = content.replace(
-    'href:"https://github.com/excalidraw/excalidraw/issues"',
-    'href:"https://github.com/ShreyashChaurasia/AetherDraw/issues"'
-  );
+  // 3. Replace Button Text "Read our blog" -> "GitHub Repository"
+  if (/blog:\s*["']Read our blog["']/.test(content)) {
+    content = content.replace(
+      /blog:\s*["']Read our blog["']/g,
+      'blog:"GitHub Repository"'
+    );
+    modified = true;
+  }
 
-  // Replace YouTube link with general YouTube / demo placeholder
-  content = content.replace(
-    'href:"https://youtube.com/@excalidraw"',
-    'href:"https://youtube.com"'
-  );
+  // 4. Replace Issues link
+  if (/https?:\/\/github\.com\/excalidraw\/excalidraw\/issues(?:\/new)?/.test(content)) {
+    content = content.replace(
+      /https?:\/\/github\.com\/excalidraw\/excalidraw\/issues(?:\/new)?/g,
+      'https://github.com/ShreyashChaurasia/AetherDraw/issues'
+    );
+    modified = true;
+  }
 
-  fs.writeFileSync(filePath, content, 'utf-8');
-  console.log(`Successfully patched help dialog links in ${relPath}`);
+  // 5. Replace YouTube channel link with demo link
+  if (/https?:\/\/youtube\.com\/@excalidraw/.test(content)) {
+    content = content.replace(
+      /https?:\/\/youtube\.com\/@excalidraw/g,
+      'https://youtube.com'
+    );
+    modified = true;
+  }
+
+  if (modified) {
+    fs.writeFileSync(filePath, content, 'utf-8');
+    console.log(`Patched: ${filePath}`);
+  }
 }
+
+function walkDir(dir) {
+  if (!fs.existsSync(dir)) return;
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name !== '.git') {
+        walkDir(fullPath);
+      }
+    } else if (entry.name.endsWith('.js') || entry.name.endsWith('.mjs') || entry.name.endsWith('.ts')) {
+      patchFile(fullPath);
+    }
+  }
+}
+
+// Patch all files in node_modules/@excalidraw/excalidraw
+walkDir(path.resolve('node_modules/@excalidraw/excalidraw'));
+
+// Clear Vite dependency cache
+const viteCacheDir = path.resolve('node_modules/.vite');
+if (fs.existsSync(viteCacheDir)) {
+  fs.rmSync(viteCacheDir, { recursive: true, force: true });
+  console.log('Cleared Vite dependency cache (node_modules/.vite)');
+}
+
+console.log('Excalidraw help links & labels successfully patched across all bundles!');
