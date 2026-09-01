@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ExcalidrawCanvas } from "./components/Canvas/ExcalidrawCanvas";
-import { Header } from "./components/UI/Header";
+import { TopNav } from "./components/UI/TopNav";
+import { BottomDock } from "./components/UI/BottomDock";
 import { Sidebar } from "./components/UI/Sidebar";
 import { ToolInspector } from "./components/Inspector/ToolInspector";
 import { ToolLog } from "./components/Inspector/ToolLog";
@@ -12,7 +13,7 @@ import { webMCPRegistry } from "./webmcp/registry";
 import { TEMPLATES } from "./templates/catalog";
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<"inspector" | "copilot" | null>("inspector");
+  const [activeTab, setActiveTab] = useState<"inspector" | "copilot" | null>(null);
   const [currentTheme, setCurrentTheme] = useState<ThemeName>("default");
   const [isAboutOpen, setIsAboutOpen] = useState(false);
 
@@ -69,11 +70,9 @@ export const App: React.FC = () => {
 
   return (
     <div className="w-screen h-screen overflow-hidden bg-neutral-950 text-neutral-100 relative">
-      {/* Sleek Floating Top Action Islands */}
-      <Header
-        activeTab={activeTab}
+      {/* 1. Top Options Menu (Templates, Themes, Layout, Export & AetherDraw Title) */}
+      <TopNav
         currentTheme={currentTheme}
-        onToggleTab={handleToggleTab}
         onThemeSelect={handleThemeSelect}
         onLayoutTrigger={handleLayoutTrigger}
         onExportTrigger={handleExportTrigger}
@@ -81,7 +80,7 @@ export const App: React.FC = () => {
         onOpenAbout={() => setIsAboutOpen(true)}
       />
 
-      {/* Full-Screen Canvas */}
+      {/* 2. Full-Screen Canvas */}
       <div className="w-full h-full flex overflow-hidden relative">
         <main className="flex-1 h-full relative">
           <ExcalidrawCanvas
@@ -110,13 +109,20 @@ export const App: React.FC = () => {
         </Sidebar>
       </div>
 
-      {/* About & Documentation Modal */}
+      {/* 3. Bottom-Right Agent & Help Dock (Inspector, AI Copilot, Help) */}
+      <BottomDock
+        activeTab={activeTab}
+        onToggleTab={handleToggleTab}
+        onOpenAbout={() => setIsAboutOpen(true)}
+      />
+
+      {/* 4. About, Documentation & References Modal */}
       <AboutModal
         isOpen={isAboutOpen}
         onClose={() => setIsAboutOpen(false)}
       />
 
-      {/* Toast Notification Container */}
+      {/* 5. Toast Notification Container */}
       <Toast />
     </div>
   );

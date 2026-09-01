@@ -3,8 +3,6 @@ import {
   Layers,
   LayoutGrid,
   Palette,
-  Terminal,
-  Sparkles,
   ChevronDown,
   ArrowDownUp,
   ArrowLeftRight,
@@ -14,10 +12,8 @@ import { TEMPLATES } from "../../templates/catalog";
 import { THEMES } from "../../themes/palettes";
 import type { ThemeName } from "../../types";
 
-interface HeaderProps {
-  activeTab: "inspector" | "copilot" | null;
+interface TopNavProps {
   currentTheme: ThemeName;
-  onToggleTab: (tab: "inspector" | "copilot") => void;
   onThemeSelect: (theme: ThemeName) => void;
   onLayoutTrigger: (direction: "TB" | "LR") => void;
   onExportTrigger: (format: "svg" | "png") => void;
@@ -25,10 +21,8 @@ interface HeaderProps {
   onOpenAbout: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({
-  activeTab,
+export const TopNav: React.FC<TopNavProps> = ({
   currentTheme,
-  onToggleTab,
   onThemeSelect,
   onLayoutTrigger,
   onExportTrigger,
@@ -56,11 +50,9 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`fixed top-3 z-30 flex items-center gap-2 select-none pointer-events-auto transition-all duration-300 ${
-        activeTab !== null ? "right-[400px]" : "right-3"
-      }`}
+      className="fixed top-3 right-3 z-20 flex items-center gap-2 select-none pointer-events-auto"
     >
-      {/* Floating Island: Options Menu, Inspector, Copilot & AetherDraw Title */}
+      {/* Floating Diagram Options Island */}
       <div className="flex items-center gap-1.5 p-1 bg-neutral-900/90 backdrop-blur-md border border-neutral-800 rounded-xl shadow-2xl">
         {/* Templates Dropdown */}
         <div className="relative">
@@ -193,7 +185,7 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        {/* Export Quick Button */}
+        {/* Export Button */}
         <button
           onClick={() => onExportTrigger("png")}
           className="p-1.5 rounded-lg text-neutral-300 hover:bg-neutral-800/80 hover:text-white transition-colors cursor-pointer"
@@ -204,37 +196,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div className="w-[1px] h-3.5 bg-neutral-800 my-auto" />
 
-        {/* WebMCP Inspector Trigger */}
-        <button
-          onClick={() => onToggleTab("inspector")}
-          className={`px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
-            activeTab === "inspector"
-              ? "bg-indigo-600 text-white shadow-md"
-              : "text-neutral-300 hover:bg-neutral-800/80 hover:text-white"
-          }`}
-          title="Toggle WebMCP Inspector & Live Telemetry"
-        >
-          <Terminal className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Inspector</span>
-        </button>
-
-        {/* AI Copilot Trigger */}
-        <button
-          onClick={() => onToggleTab("copilot")}
-          className={`px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
-            activeTab === "copilot"
-              ? "bg-indigo-600 text-white shadow-md"
-              : "text-neutral-300 hover:bg-neutral-800/80 hover:text-white"
-          }`}
-          title="Toggle AetherDraw AI Copilot"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-          <span className="hidden sm:inline">AI Copilot</span>
-        </button>
-
-        <div className="w-[1px] h-3.5 bg-neutral-800 my-auto" />
-
-        {/* AetherDraw Title on the Right (Click to open About & References) */}
+        {/* AetherDraw Title Badge (Placed just to the right of options menu) */}
         <button
           onClick={onOpenAbout}
           className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-neutral-800/80 transition-colors cursor-pointer text-left group"

@@ -51,3 +51,19 @@
   --color-surface-high: #334155;
   --color-surface-highest: #475569;
 }
+
+/* Strictly hide Excalidraw default bottom-right help icon */
+.excalidraw .help-icon,
+.excalidraw button.help-icon,
+.excalidraw button[aria-label="Help"],
+.excalidraw button[title*="Help"],
+.excalidraw button[title*="help"],
+.excalidraw .layer-ui__wrapper .help-icon,
+.excalidraw .layer-ui__wrapper footer .help-icon,
+.excalidraw .footer-center + .help-icon,
+.layer-ui__wrapper .help-icon {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
