@@ -59,7 +59,6 @@ export const App: React.FC = () => {
 
     const template = TEMPLATES[templateKey];
     if (template) {
-      // Always pass the active user theme to preserve theme selection
       await modelContext.executeTool("create_diagram", {
         ...template.spec,
         theme: currentTheme,
@@ -69,8 +68,8 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col w-screen h-screen overflow-hidden bg-neutral-950 text-neutral-100">
-      {/* Top Navigation & Controls */}
+    <div className="w-screen h-screen overflow-hidden bg-neutral-950 text-neutral-100 relative">
+      {/* Sleek Floating Top Action Islands */}
       <Header
         activeTab={activeTab}
         currentTheme={currentTheme}
@@ -82,8 +81,8 @@ export const App: React.FC = () => {
         onOpenAbout={() => setIsAboutOpen(true)}
       />
 
-      {/* Main Workspace */}
-      <div className="flex-1 flex overflow-hidden relative">
+      {/* Full-Screen Canvas */}
+      <div className="w-full h-full flex overflow-hidden relative">
         <main className="flex-1 h-full relative">
           <ExcalidrawCanvas
             theme="dark"

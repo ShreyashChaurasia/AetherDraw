@@ -54,3 +54,5 @@ CLAUDE.md
 *.tsbuildinfo
 public/test-canvas-screenshot.png
 public/scenario-*.png
+public/*-test.png
+public/v3-*.png

@@ -184,7 +184,7 @@ export function createApplyAutoLayoutTool(getAPI: () => ExcalidrawImperativeAPI 
               width: route.width,
               height: route.height,
               points: route.points,
-              roundness: { type: 2 },
+              roundness: { type: 2 as const },
               version: el.version + 1,
               updated: Date.now(),
             };
@@ -194,7 +194,7 @@ export function createApplyAutoLayoutTool(getAPI: () => ExcalidrawImperativeAPI 
         return el;
       });
 
-      api.updateScene({ elements: updatedElements });
+      api.updateScene({ elements: updatedElements as any });
       api.scrollToContent(shapes, { fitToViewport: true, viewportZoomFactor: 0.85, animate: true, duration: 400 });
 
       return {

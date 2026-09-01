@@ -105,8 +105,8 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
   if (spec.nodes.length > 0) {
     layoutResult = computeDagreLayout(layoutNodes, layoutEdges, {
       direction,
-      nodeSpacing: 110,
-      rankSpacing: 130,
+      nodeSpacing: 120,
+      rankSpacing: 140,
     });
   } else {
     layoutResult = { positions: new Map(), width: 0, height: 0 };
@@ -114,6 +114,7 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
 
   const skeletons: any[] = [];
   const nodeRects: NodeRect[] = [];
+  const yOffset = spec.title ? 130 : 50;
 
   // Optional Title banner
   if (spec.title) {
@@ -121,7 +122,7 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
       id: generateElementId("title"),
       type: "text",
       x: 80,
-      y: 30,
+      y: 40,
       text: spec.title,
       fontSize: 22,
       fontFamily: EXCALIDRAW_FONTS.NORMAL,
@@ -135,7 +136,6 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
     const dims = getDimensionsForNode(node.label, node.type);
     const width = node.width || dims.width;
     const height = node.height || dims.height;
-    const yOffset = spec.title ? 80 : 0;
 
     const x = pos.x + 80;
     const y = pos.y + yOffset;
@@ -167,7 +167,7 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
     });
   });
 
-  // 4. Compute organic smooth cubic Bezier & outer-gutter routes
+  // 4. Compute organic smooth cubic Bezier & obstacle-avoiding routes
   const edgeSpecs: EdgeSpec[] = spec.connections.map((conn, idx) => ({
     id: generateElementId(`arrow_${idx}`),
     from: conn.from,

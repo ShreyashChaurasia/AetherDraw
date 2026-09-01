@@ -1,17 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
-  Palette,
+  Layers,
   LayoutGrid,
-  Download,
+  Palette,
   Terminal,
   Sparkles,
-  Layers,
   ChevronDown,
   Info,
+  ArrowDownUp,
+  ArrowLeftRight,
+  Download,
 } from "lucide-react";
-import type { ThemeName } from "../../types";
-import { THEMES } from "../../themes/palettes";
 import { TEMPLATES } from "../../templates/catalog";
+import { THEMES } from "../../themes/palettes";
+import type { ThemeName } from "../../types";
 
 interface HeaderProps {
   activeTab: "inspector" | "copilot" | null;
@@ -20,7 +22,7 @@ interface HeaderProps {
   onThemeSelect: (theme: ThemeName) => void;
   onLayoutTrigger: (direction: "TB" | "LR") => void;
   onExportTrigger: (format: "svg" | "png") => void;
-  onTemplateSelect: (templateKey: string) => void;
+  onTemplateSelect: (templateId: string) => void;
   onOpenAbout: () => void;
 }
 
@@ -34,51 +36,71 @@ export const Header: React.FC<HeaderProps> = ({
   onTemplateSelect,
   onOpenAbout,
 }) => {
-  const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showTemplateMenu, setShowTemplateMenu] = useState(false);
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
+  const [showLayoutMenu, setShowLayoutMenu] = useState(false);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Close menus on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setShowTemplateMenu(false);
+        setShowThemeMenu(false);
+        setShowLayoutMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
-    <header className="h-14 border-b border-neutral-800 bg-neutral-950/90 backdrop-blur px-4 flex items-center justify-between select-none z-30 shrink-0">
-      {/* Left: Branding & Status */}
-      <div className="flex items-center gap-3">
+    <div ref={containerRef} className="select-none pointer-events-none">
+      {/* Top-Left Floating Island (Beside Hamburger Menu) */}
+      <div className="fixed top-3 left-16 z-30 flex items-center gap-1.5 p-1 bg-neutral-900/90 backdrop-blur-md border border-neutral-800 rounded-xl shadow-2xl pointer-events-auto">
+        {/* Brand & WebMCP Pulse Dot */}
         <button
           onClick={onOpenAbout}
-          className="flex items-center gap-2.5 hover:opacity-90 transition-opacity cursor-pointer text-left"
-          title="About AetherDraw"
+          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-neutral-800/80 transition-colors cursor-pointer text-left group"
+          title="About AetherDraw & WebMCP"
         >
-          <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center shadow-inner">
-            <Layers className="w-4 h-4 text-indigo-400" />
+          <div className="w-5 h-5 rounded-md bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center">
+            <Layers className="w-3 h-3 text-indigo-400" />
           </div>
-          <div>
-            <div className="text-sm font-bold tracking-tight text-white flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-bold text-neutral-100 group-hover:text-white transition-colors">
               AetherDraw
-              <span className="px-1.5 py-0.2 text-[9px] font-mono uppercase bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded">
-                WebMCP Active
-              </span>
-            </div>
-            <div className="text-[10px] text-neutral-400">Agent-Native Infinite Whiteboard</div>
+            </span>
+            <span
+              className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-sm"
+              title="WebMCP Active (document.modelContext)"
+            />
           </div>
         </button>
-      </div>
 
-      {/* Middle: Canvas Quick Actions */}
-      <div className="flex items-center gap-1.5">
+        <div className="w-[1px] h-4 bg-neutral-800 my-auto" />
+
         {/* Templates Dropdown */}
         <div className="relative">
           <button
             onClick={() => {
               setShowTemplateMenu(!showTemplateMenu);
               setShowThemeMenu(false);
+              setShowLayoutMenu(false);
             }}
-            className="px-2.5 py-1.5 rounded-md bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-xs font-medium text-neutral-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-medium text-neutral-200 hover:bg-neutral-800/80 flex items-center gap-1.5 transition-colors cursor-pointer ${
+              showTemplateMenu ? "bg-neutral-800 text-indigo-300" : ""
+            }`}
+            title="Diagram Templates"
           >
             <LayoutGrid className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Templates</span>
+            <span className="hidden sm:inline">Templates</span>
             <ChevronDown className="w-3 h-3 text-neutral-500" />
           </button>
 
           {showTemplateMenu && (
-            <div className="absolute top-full mt-1.5 left-0 w-64 bg-neutral-900 border border-neutral-800 rounded-lg shadow-2xl py-1 z-50 text-xs max-h-96 overflow-y-auto divide-y divide-neutral-800/60">
+            <div className="absolute top-full mt-2 left-0 w-64 bg-neutral-900/95 backdrop-blur-md border border-neutral-800 rounded-xl shadow-2xl py-1 z-50 text-xs max-h-96 overflow-y-auto divide-y divide-neutral-800/60 animate-in fade-in zoom-in-95 duration-100">
               {Object.values(TEMPLATES).map((tmpl) => (
                 <button
                   key={tmpl.id}
@@ -109,16 +131,20 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => {
               setShowThemeMenu(!showThemeMenu);
               setShowTemplateMenu(false);
+              setShowLayoutMenu(false);
             }}
-            className="px-2.5 py-1.5 rounded-md bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-xs font-medium text-neutral-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-medium text-neutral-200 hover:bg-neutral-800/80 flex items-center gap-1.5 transition-colors cursor-pointer ${
+              showThemeMenu ? "bg-neutral-800 text-pink-300" : ""
+            }`}
+            title="Color Themes"
           >
             <Palette className="w-3.5 h-3.5 text-pink-400" />
-            <span>Theme: {THEMES[currentTheme]?.name || "Default"}</span>
+            <span className="hidden sm:inline">{THEMES[currentTheme]?.name.split(" ")[0] || "Theme"}</span>
             <ChevronDown className="w-3 h-3 text-neutral-500" />
           </button>
 
           {showThemeMenu && (
-            <div className="absolute top-full mt-1.5 left-0 w-48 bg-neutral-900 border border-neutral-800 rounded-lg shadow-xl py-1 z-50 text-xs">
+            <div className="absolute top-full mt-2 left-0 w-48 bg-neutral-900/95 backdrop-blur-md border border-neutral-800 rounded-xl shadow-2xl py-1 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
               {Object.entries(THEMES).map(([key, def]) => {
                 const isSelected = key === currentTheme;
                 return (
@@ -129,12 +155,12 @@ export const Header: React.FC<HeaderProps> = ({
                       setShowThemeMenu(false);
                     }}
                     className={`w-full text-left px-3 py-2 hover:bg-neutral-800 text-neutral-200 flex items-center justify-between cursor-pointer ${
-                      isSelected ? "bg-neutral-800/60 font-semibold text-indigo-300" : ""
+                      isSelected ? "bg-neutral-800/80 font-semibold text-indigo-300" : ""
                     }`}
                   >
                     <span>{def.name}</span>
                     <div
-                      className="w-3.5 h-3.5 rounded-full border border-neutral-700 shadow-sm"
+                      className="w-3 h-3 rounded-full border border-neutral-700 shadow-sm"
                       style={{ backgroundColor: def.nodeStrokes[0] }}
                     />
                   </button>
@@ -144,68 +170,100 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        {/* Auto Layout TB / LR */}
-        <button
-          onClick={() => onLayoutTrigger("TB")}
-          className="px-2.5 py-1.5 rounded-md bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-xs font-medium text-neutral-200 flex items-center gap-1.5 transition-colors cursor-pointer"
-          title="Auto Layout Top-to-Bottom"
-        >
-          <span>Layout (TB)</span>
-        </button>
-        <button
-          onClick={() => onLayoutTrigger("LR")}
-          className="px-2.5 py-1.5 rounded-md bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-xs font-medium text-neutral-200 flex items-center gap-1.5 transition-colors cursor-pointer"
-          title="Auto Layout Left-to-Right"
-        >
-          <span>Layout (LR)</span>
-        </button>
+        {/* Auto Layout Dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => {
+              setShowLayoutMenu(!showLayoutMenu);
+              setShowTemplateMenu(false);
+              setShowThemeMenu(false);
+            }}
+            className={`px-2 py-1.5 rounded-lg text-xs font-medium text-neutral-200 hover:bg-neutral-800/80 flex items-center gap-1 transition-colors cursor-pointer ${
+              showLayoutMenu ? "bg-neutral-800 text-emerald-300" : ""
+            }`}
+            title="Auto Layout Diagram"
+          >
+            <ArrowDownUp className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden md:inline">Layout</span>
+            <ChevronDown className="w-3 h-3 text-neutral-500" />
+          </button>
 
-        {/* Export */}
+          {showLayoutMenu && (
+            <div className="absolute top-full mt-2 left-0 w-44 bg-neutral-900/95 backdrop-blur-md border border-neutral-800 rounded-xl shadow-2xl py-1 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
+              <button
+                onClick={() => {
+                  onLayoutTrigger("TB");
+                  setShowLayoutMenu(false);
+                }}
+                className="w-full text-left px-3 py-2 hover:bg-neutral-800 text-neutral-200 flex items-center gap-2 cursor-pointer"
+              >
+                <ArrowDownUp className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Top-to-Bottom (TB)</span>
+              </button>
+              <button
+                onClick={() => {
+                  onLayoutTrigger("LR");
+                  setShowLayoutMenu(false);
+                }}
+                className="w-full text-left px-3 py-2 hover:bg-neutral-800 text-neutral-200 flex items-center gap-2 cursor-pointer"
+              >
+                <ArrowLeftRight className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Left-to-Right (LR)</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Export Quick Button */}
         <button
           onClick={() => onExportTrigger("png")}
-          className="px-2.5 py-1.5 rounded-md bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-xs font-medium text-neutral-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+          className="p-1.5 rounded-lg text-neutral-300 hover:bg-neutral-800/80 hover:text-white transition-colors cursor-pointer"
           title="Export Canvas to PNG"
         >
           <Download className="w-3.5 h-3.5 text-neutral-400" />
-          <span>Export PNG</span>
         </button>
       </div>
 
-      {/* Right: About / Inspector / Copilot Drawers */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={onOpenAbout}
-          className="px-2.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer border bg-neutral-900 border-neutral-800 hover:border-neutral-700 text-neutral-300"
-          title="About AetherDraw & Documentation"
-        >
-          <Info className="w-3.5 h-3.5 text-neutral-400" />
-          <span>About</span>
-        </button>
-
+      {/* Top-Right Floating Island (Inspector & Copilot Drawers) */}
+      <div
+        className={`fixed top-3 z-30 flex items-center gap-1.5 p-1 bg-neutral-900/90 backdrop-blur-md border border-neutral-800 rounded-xl shadow-2xl pointer-events-auto transition-all duration-300 ${
+          activeTab !== null ? "right-[400px]" : "right-3"
+        }`}
+      >
         <button
           onClick={() => onToggleTab("inspector")}
-          className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer border ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
             activeTab === "inspector"
-              ? "bg-indigo-600 border-indigo-500 text-white shadow-sm"
-              : "bg-neutral-900 border-neutral-800 hover:border-neutral-700 text-neutral-300"
+              ? "bg-indigo-600 text-white shadow-md"
+              : "text-neutral-300 hover:bg-neutral-800/80 hover:text-white"
           }`}
+          title="Toggle WebMCP Inspector & Live Telemetry"
         >
           <Terminal className="w-3.5 h-3.5" />
-          <span>WebMCP Inspector</span>
+          <span className="hidden sm:inline">Inspector</span>
         </button>
 
         <button
           onClick={() => onToggleTab("copilot")}
-          className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer border ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
             activeTab === "copilot"
-              ? "bg-indigo-600 border-indigo-500 text-white shadow-sm"
-              : "bg-neutral-900 border-neutral-800 hover:border-neutral-700 text-neutral-300"
+              ? "bg-indigo-600 text-white shadow-md"
+              : "text-neutral-300 hover:bg-neutral-800/80 hover:text-white"
           }`}
+          title="Toggle AetherDraw AI Copilot"
         >
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>AI Copilot</span>
+          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+          <span className="hidden sm:inline">AI Copilot</span>
+        </button>
+
+        <button
+          onClick={onOpenAbout}
+          className="p-1.5 rounded-lg text-neutral-400 hover:bg-neutral-800/80 hover:text-neutral-200 transition-colors cursor-pointer"
+          title="About & Attribution"
+        >
+          <Info className="w-3.5 h-3.5" />
         </button>
       </div>
-    </header>
+    </div>
   );
 };
