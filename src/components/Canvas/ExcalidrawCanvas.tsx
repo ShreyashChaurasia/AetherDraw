@@ -39,6 +39,9 @@ export const ExcalidrawCanvas: React.FC<ExcalidrawCanvasProps> = ({
   useEffect(() => {
     if (typeof window !== "undefined") {
       (window as any).EXCALIDRAW_ASSET_PATH = "/excalidraw-assets/";
+      if (!localStorage.getItem("excalidraw-theme")) {
+        localStorage.setItem("excalidraw-theme", "dark");
+      }
     }
   }, []);
 
@@ -61,6 +64,12 @@ export const ExcalidrawCanvas: React.FC<ExcalidrawCanvasProps> = ({
       <Excalidraw
         excalidrawAPI={handleExcalidrawAPI}
         theme={theme}
+        initialData={{
+          appState: {
+            theme: "dark",
+            viewBackgroundColor: "#ffffff",
+          },
+        }}
         UIOptions={{
           canvasActions: {
             saveToActiveFile: false,
@@ -96,52 +105,7 @@ export const ExcalidrawCanvas: React.FC<ExcalidrawCanvasProps> = ({
           >
             Toggle Grid (Ctrl + ')
           </MainMenu.Item>
-          <MainMenu.Separator />
-
-          {/* Dark Canvas Background Picks */}
-          <div style={{ padding: "0.5rem 0.75rem" }}>
-            <div style={{ fontSize: "0.75rem", marginBottom: "0.5rem", color: "#94a3b8" }}>
-              Canvas background
-            </div>
-            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-              {[
-                { name: "Void Black", color: "#090a10" },
-                { name: "Aether Indigo", color: "#090d16" },
-                { name: "Charcoal", color: "#1e1e24" },
-                { name: "Slate Dark", color: "#0f172a" },
-                { name: "Nordic Night", color: "#2e3440" },
-                { name: "Navy Blue", color: "#1e3a5f" },
-              ].map((swatch) => (
-                <button
-                  key={swatch.color}
-                  type="button"
-                  title={swatch.name}
-                  onClick={() => {
-                    if (apiRef.current) {
-                      apiRef.current.updateScene({
-                        appState: { viewBackgroundColor: swatch.color },
-                      });
-                      if (typeof window !== "undefined") {
-                        window.dispatchEvent(
-                          new CustomEvent("aetherdraw:canvasbgchange", {
-                            detail: { color: swatch.color },
-                          })
-                        );
-                      }
-                    }
-                  }}
-                  style={{
-                    width: "24px",
-                    height: "24px",
-                    borderRadius: "4px",
-                    backgroundColor: swatch.color,
-                    border: "1px solid #475569",
-                    cursor: "pointer",
-                  }}
-                />
-              ))}
-            </div>
-          </div>
+          <MainMenu.DefaultItems.ChangeCanvasBackground />
           <MainMenu.Separator />
 
           {/* Custom About Modal Trigger */}

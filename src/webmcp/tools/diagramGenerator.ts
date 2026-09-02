@@ -113,7 +113,8 @@ export function createDiagramGeneratorTool(getAPI: () => ExcalidrawImperativeAPI
 
       const normalizedInput: DiagramSpec = {
         ...input,
-        connections: input.connections || input.edges || [],
+        layoutDirection: input.layoutDirection || (input as any).direction || "TB",
+        connections: input.connections || input.edges || (input as any).links || [],
         nodes: (input.nodes || []).map((node) => ({
           ...node,
           type: (node.type || (node as any).shape || "rectangle") as any,

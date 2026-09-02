@@ -2,14 +2,14 @@ import type { ColorThemeDefinition, ThemeName } from "../types";
 
 export const THEMES: Record<ThemeName, ColorThemeDefinition> = {
   default: {
-    name: "Aether Indigo (Default)",
-    description: "Signature dark canvas with vivid indigo strokes and slate fills",
+    name: "Excalidraw Dark (Default)",
+    description: "Default dark theme like Excalidraw with authentic #121212 canvas and subtle grid",
     isDark: true,
-    canvasBackground: "#090d16",
-    nodeStrokes: ["#6366f1", "#818cf8", "#a5b4fc", "#38bdf8"],
-    nodeFills: ["#1e1b4b", "#172554", "#1e293b"],
-    arrowColor: "#818cf8",
-    textColor: "#f8fafc",
+    canvasBackground: "#ffffff",
+    nodeStrokes: ["#1e1e1e", "#364fc7", "#0c8599", "#2f9e44"],
+    nodeFills: ["transparent", "#edf2ff", "#e6fcf5", "#ebfbee"],
+    arrowColor: "#1e1e1e",
+    textColor: "#1e1e1e",
     roughness: 0,
     fillStyle: "solid",
   },

@@ -50,12 +50,6 @@
   --color-surface-mid: #1e293b;
   --color-surface-high: #334155;
   --color-surface-highest: #475569;
-  --theme-filter: none !important;
-}
-
-/* Disable canvas color inversion so dark themes render authentic colors */
-.excalidraw__canvas {
-  filter: none !important;
 }
 
 /* Strictly hide Excalidraw default bottom-right help icon */
