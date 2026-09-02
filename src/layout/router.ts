@@ -218,9 +218,9 @@ export function computeSmartRoutes(
     const inFraction = inCount > 1 ? (inIdx + 1) / (inCount + 1) : 0.5;
 
     // ----------------------------------------------------
-    // CASE A: BACKWARD / FEEDBACK LOOP (Target is ABOVE Source)
+    // CASE A: BACKWARD / FEEDBACK LOOP (Target is ABOVE Source in TB mode)
     // ----------------------------------------------------
-    if (dst.y + dst.height <= src.y) {
+    if (direction === "TB" && dst.y + dst.height <= src.y) {
       const srcCenterX = src.x + src.width / 2;
       const useLeftGutter = srcCenterX <= (globalMinX + globalMaxX) / 2;
 
@@ -364,10 +364,37 @@ export function computeSmartRoutes(
     // CASE C: LEFT-TO-RIGHT (LR) HIERARCHY FLOW
     // ----------------------------------------------------
     if (direction === "LR") {
-      const startX = src.x + src.width;
-      const startY = src.y + src.height * outFraction;
-      const endX = dst.x;
-      const endY = dst.y + dst.height * inFraction;
+      let startX: number;
+      let startY: number;
+      let endX: number;
+      let endY: number;
+
+      if (dst.x + dst.width <= src.x + 20) {
+        // Return / Feedback Edge (Right to Left)
+        startX = src.x;
+        startY = src.y + src.height * (outCount > 1 ? 0.65 + (outIdx / Math.max(1, outCount - 1)) * 0.25 : 0.76);
+        endX = dst.x + dst.width;
+        endY = dst.y + dst.height * (inCount > 1 ? 0.55 + (inIdx / Math.max(1, inCount - 1)) * 0.35 : 0.76);
+      } else if (src.x + src.width <= dst.x + 20) {
+        // Forward Edge (Left to Right)
+        startX = src.x + src.width;
+        startY = src.y + src.height * (outCount > 1 ? 0.12 + (outIdx / Math.max(1, outCount - 1)) * 0.35 : 0.24);
+        endX = dst.x;
+        endY = dst.y + dst.height * (inCount > 1 ? 0.15 + (inIdx / Math.max(1, inCount - 1)) * 0.25 : 0.24);
+      } else {
+        // Vertically aligned in same column
+        if (dst.y >= src.y) {
+          startX = src.x + src.width * outFraction;
+          startY = src.y + src.height;
+          endX = dst.x + dst.width * inFraction;
+          endY = dst.y;
+        } else {
+          startX = src.x + src.width * outFraction;
+          startY = src.y;
+          endX = dst.x + dst.width * inFraction;
+          endY = dst.y + dst.height;
+        }
+      }
 
       const deltaX = endX - startX;
       const deltaY = endY - startY;

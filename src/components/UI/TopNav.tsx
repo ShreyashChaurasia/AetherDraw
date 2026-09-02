@@ -7,6 +7,7 @@ import {
   ArrowDownUp,
   ArrowLeftRight,
   Download,
+  Grid,
 } from "lucide-react";
 import { TEMPLATES } from "../../templates/catalog";
 import { THEMES } from "../../themes/palettes";
@@ -19,6 +20,8 @@ interface TopNavProps {
   onExportTrigger: (format: "svg" | "png") => void;
   onTemplateSelect: (templateId: string) => void;
   onOpenAbout: () => void;
+  onToggleGrid?: () => void;
+  isGridEnabled?: boolean;
 }
 
 export const TopNav: React.FC<TopNavProps> = ({
@@ -28,6 +31,8 @@ export const TopNav: React.FC<TopNavProps> = ({
   onExportTrigger,
   onTemplateSelect,
   onOpenAbout,
+  onToggleGrid,
+  isGridEnabled = false,
 }) => {
   const [showTemplateMenu, setShowTemplateMenu] = useState(false);
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
@@ -196,6 +201,20 @@ export const TopNav: React.FC<TopNavProps> = ({
             </div>
           )}
         </div>
+
+        {/* Grid Toggle Button */}
+        {onToggleGrid && (
+          <button
+            onClick={onToggleGrid}
+            className={`px-2 py-1.5 rounded-lg text-xs font-medium text-neutral-200 hover:bg-neutral-800/80 flex items-center gap-1 transition-colors cursor-pointer ${
+              isGridEnabled ? "bg-neutral-800 text-indigo-300 ring-1 ring-indigo-500/40" : ""
+            }`}
+            title="Toggle Canvas Grid (Ctrl + ')"
+          >
+            <Grid className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="hidden sm:inline">Grid</span>
+          </button>
+        )}
 
         {/* Export Button */}
         <button

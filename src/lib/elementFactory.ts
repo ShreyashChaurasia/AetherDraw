@@ -111,8 +111,8 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
   if (spec.nodes.length > 0) {
     layoutResult = computeDagreLayout(layoutNodes, layoutEdges, {
       direction,
-      nodeSpacing: 70,
-      rankSpacing: 80,
+      nodeSpacing: direction === "LR" ? 100 : 110,
+      rankSpacing: direction === "LR" ? 160 : 130,
     });
   } else {
     layoutResult = { positions: new Map(), width: 0, height: 0 };

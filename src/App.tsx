@@ -18,6 +18,8 @@ export const App: React.FC = () => {
   const [currentTheme, setCurrentTheme] = useState<ThemeName>("default");
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [helpTab, setHelpTab] = useState<"shortcuts" | "about">("shortcuts");
+  const [customBg, setCustomBg] = useState<string | null>(null);
+  const [isGridEnabled, setIsGridEnabled] = useState<boolean>(false);
 
   const handleOpenHelp = (tab: "shortcuts" | "about" = "shortcuts") => {
     setHelpTab(tab);
@@ -62,18 +64,46 @@ export const App: React.FC = () => {
       const newTheme = e.detail?.theme;
       if (newTheme && THEMES[newTheme as ThemeName]) {
         setCurrentTheme(newTheme as ThemeName);
+        setCustomBg(null);
       }
     };
+    const handleCanvasBgChange = (e: any) => {
+      if (e.detail?.color) {
+        setCustomBg(e.detail.color);
+      }
+    };
+    const handleGridChange = (e: any) => {
+      if (typeof e.detail?.enabled === "boolean") {
+        setIsGridEnabled(e.detail.enabled);
+      }
+    };
+
     window.addEventListener("aetherdraw:themechange", handleThemeChange);
-    return () => window.removeEventListener("aetherdraw:themechange", handleThemeChange);
+    window.addEventListener("aetherdraw:canvasbgchange", handleCanvasBgChange);
+    window.addEventListener("aetherdraw:gridchange", handleGridChange);
+    return () => {
+      window.removeEventListener("aetherdraw:themechange", handleThemeChange);
+      window.removeEventListener("aetherdraw:canvasbgchange", handleCanvasBgChange);
+      window.removeEventListener("aetherdraw:gridchange", handleGridChange);
+    };
   }, []);
 
   const handleToggleTab = (tab: "inspector" | "copilot") => {
     setActiveTab((prev) => (prev === tab ? null : tab));
   };
 
+  const handleToggleGrid = () => {
+    const api = webMCPRegistry.getCanvasAPI();
+    if (api) {
+      const nextGrid = !api.getAppState().gridModeEnabled;
+      api.updateScene({ appState: { gridModeEnabled: nextGrid } });
+      setIsGridEnabled(nextGrid);
+    }
+  };
+
   const handleThemeSelect = async (theme: ThemeName) => {
     setCurrentTheme(theme);
+    setCustomBg(null);
     try {
       await webMCPRegistry.executeTool("apply_theme", { theme });
     } catch (err) {
@@ -120,7 +150,7 @@ export const App: React.FC = () => {
 
   return (
     <div className="w-screen h-screen overflow-hidden bg-neutral-950 text-neutral-100 relative">
-      {/* 1. Top Options Menu (Templates, Themes, Layout, Export & AetherDraw Title) */}
+      {/* 1. Top Options Menu (Templates, Themes, Layout, Grid, Export & AetherDraw Title) */}
       <TopNav
         currentTheme={currentTheme}
         onThemeSelect={handleThemeSelect}
@@ -128,13 +158,15 @@ export const App: React.FC = () => {
         onExportTrigger={handleExportTrigger}
         onTemplateSelect={handleTemplateSelect}
         onOpenAbout={() => handleOpenHelp("about")}
+        onToggleGrid={handleToggleGrid}
+        isGridEnabled={isGridEnabled}
       />
 
       {/* 2. Full-Screen Canvas */}
       <div className="w-full h-full flex overflow-hidden relative">
         <main
           className="flex-1 h-full relative transition-colors duration-300"
-          style={{ backgroundColor: THEMES[currentTheme]?.canvasBackground || "#090d16" }}
+          style={{ backgroundColor: customBg || THEMES[currentTheme]?.canvasBackground || "#090d16" }}
         >
           <ExcalidrawCanvas
             theme={THEMES[currentTheme]?.isDark === false ? "light" : "dark"}

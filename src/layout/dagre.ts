@@ -10,15 +10,15 @@ export function computeDagreLayout(
   const g = new dagre.graphlib.Graph({ directed: true });
 
   const rankdir = options.direction || "TB";
-  const nodesep = options.nodeSpacing ?? DEFAULT_NODE_SEP;
-  const ranksep = options.rankSpacing ?? DEFAULT_RANK_SEP;
+  const nodesep = options.nodeSpacing ?? (rankdir === "LR" ? 100 : DEFAULT_NODE_SEP);
+  const ranksep = options.rankSpacing ?? (rankdir === "LR" ? 160 : DEFAULT_RANK_SEP);
 
   g.setGraph({
     rankdir,
     nodesep,
     ranksep,
-    marginx: 60,
-    marginy: 60,
+    marginx: 80,
+    marginy: 80,
     align: "UL",
     ranker: "network-simplex",
   });
@@ -32,8 +32,15 @@ export function computeDagreLayout(
     });
   }
 
+  // Prevent 2-cycles (A -> B and B -> A) from disrupting Dagre hierarchy ranking
+  const forwardEdges = new Set<string>();
   for (const edge of edges) {
-    g.setEdge(edge.source, edge.target);
+    const forwardKey = `${edge.source}->${edge.target}`;
+    const reverseKey = `${edge.target}->${edge.source}`;
+    if (!forwardEdges.has(reverseKey)) {
+      forwardEdges.add(forwardKey);
+      g.setEdge(edge.source, edge.target);
+    }
   }
 
   dagre.layout(g);
