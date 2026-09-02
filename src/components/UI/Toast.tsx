@@ -26,7 +26,7 @@ export const Toast: React.FC = () => {
 
     const unsubLogs = webMCPEventManager.subscribeLogs((logs) => {
       const latest = logs[0];
-      if (latest && latest.status === "success" && latest.durationMs > 0) {
+      if (latest && latest.status === "success" && typeof latest.durationMs === "number") {
         setToast({
           id: `t_${Date.now()}`,
           toolName: latest.toolName,

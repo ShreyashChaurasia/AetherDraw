@@ -132,7 +132,10 @@ export const App: React.FC = () => {
 
       {/* 2. Full-Screen Canvas */}
       <div className="w-full h-full flex overflow-hidden relative">
-        <main className="flex-1 h-full relative">
+        <main
+          className="flex-1 h-full relative transition-colors duration-300"
+          style={{ backgroundColor: THEMES[currentTheme]?.canvasBackground || "#090d16" }}
+        >
           <ExcalidrawCanvas
             theme={THEMES[currentTheme]?.isDark === false ? "light" : "dark"}
             onOpenAbout={() => handleOpenHelp("about")}

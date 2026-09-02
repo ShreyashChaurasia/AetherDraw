@@ -42,6 +42,9 @@ export const ExcalidrawCanvas: React.FC<ExcalidrawCanvasProps> = ({
   const handleExcalidrawAPI = useCallback(
     (api: ExcalidrawImperativeAPI) => {
       webMCPRegistry.setCanvasAPI(api);
+      if (typeof window !== "undefined") {
+        (window as any)._aetherdrawAPI = api;
+      }
       if (onApiReady) {
         onApiReady(api);
       }
@@ -50,7 +53,7 @@ export const ExcalidrawCanvas: React.FC<ExcalidrawCanvasProps> = ({
   );
 
   return (
-    <div className="w-full h-full relative overflow-hidden bg-neutral-950">
+    <div className="w-full h-full relative overflow-hidden">
       <Excalidraw
         excalidrawAPI={handleExcalidrawAPI}
         theme={theme}
