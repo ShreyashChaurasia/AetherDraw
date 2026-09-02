@@ -16,10 +16,43 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"inspector" | "copilot" | null>(null);
   const [currentTheme, setCurrentTheme] = useState<ThemeName>("default");
   const [isAboutOpen, setIsAboutOpen] = useState(false);
+  const [helpTab, setHelpTab] = useState<"shortcuts" | "about">("shortcuts");
+
+  const handleOpenHelp = (tab: "shortcuts" | "about" = "shortcuts") => {
+    setHelpTab(tab);
+    setIsAboutOpen(true);
+  };
 
   useEffect(() => {
     // Initialize WebMCP registry
     webMCPRegistry.initialize();
+
+    // Global keyboard listener for shortcuts
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeTag = document.activeElement?.tagName.toLowerCase();
+      if (
+        activeTag === "input" ||
+        activeTag === "textarea" ||
+        (document.activeElement as HTMLElement)?.isContentEditable
+      ) {
+        return;
+      }
+      if (e.key === "?" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        handleOpenHelp("shortcuts");
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "j") {
+        e.preventDefault();
+        setActiveTab((prev) => (prev === "copilot" ? null : "copilot"));
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "i") {
+        e.preventDefault();
+        setActiveTab((prev) => (prev === "inspector" ? null : "inspector"));
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   const handleToggleTab = (tab: "inspector" | "copilot") => {
@@ -77,7 +110,7 @@ export const App: React.FC = () => {
         onLayoutTrigger={handleLayoutTrigger}
         onExportTrigger={handleExportTrigger}
         onTemplateSelect={handleTemplateSelect}
-        onOpenAbout={() => setIsAboutOpen(true)}
+        onOpenAbout={() => handleOpenHelp("about")}
       />
 
       {/* 2. Full-Screen Canvas */}
@@ -85,7 +118,7 @@ export const App: React.FC = () => {
         <main className="flex-1 h-full relative">
           <ExcalidrawCanvas
             theme="dark"
-            onOpenAbout={() => setIsAboutOpen(true)}
+            onOpenAbout={() => handleOpenHelp("about")}
           />
         </main>
 
@@ -113,12 +146,13 @@ export const App: React.FC = () => {
       <BottomDock
         activeTab={activeTab}
         onToggleTab={handleToggleTab}
-        onOpenAbout={() => setIsAboutOpen(true)}
+        onOpenAbout={() => handleOpenHelp("shortcuts")}
       />
 
       {/* 4. About, Documentation & References Modal */}
       <AboutModal
         isOpen={isAboutOpen}
+        initialTab={helpTab}
         onClose={() => setIsAboutOpen(false)}
       />
 
