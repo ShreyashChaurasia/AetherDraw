@@ -57,3 +57,9 @@ public/scenario-*.png
 public/*-test.png
 public/v3-*.png
 public/v*-*.png
+
+# Video script & submission drafts
+VIDEO_SCRIPT.md
+video_script.md
+*video_script*
+
