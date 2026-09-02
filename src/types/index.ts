@@ -108,6 +108,7 @@ export interface SemanticCanvasState {
 export interface ColorThemeDefinition {
   name: string;
   description: string;
+  isDark?: boolean;
   canvasBackground: string;
   nodeStrokes: string[];
   nodeFills: string[];

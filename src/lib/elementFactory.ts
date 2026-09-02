@@ -111,8 +111,8 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
   if (spec.nodes.length > 0) {
     layoutResult = computeDagreLayout(layoutNodes, layoutEdges, {
       direction,
-      nodeSpacing: 120,
-      rankSpacing: 140,
+      nodeSpacing: 70,
+      rankSpacing: 80,
     });
   } else {
     layoutResult = { positions: new Map(), width: 0, height: 0 };
@@ -218,6 +218,7 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
                 text: conn.label,
                 fontSize: 12,
                 fontFamily: EXCALIDRAW_FONTS.NORMAL,
+                strokeColor: theme.textColor,
               },
             }
           : {}),

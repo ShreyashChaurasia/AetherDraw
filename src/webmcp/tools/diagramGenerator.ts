@@ -122,14 +122,23 @@ export function createDiagramGeneratorTool(getAPI: () => ExcalidrawImperativeAPI
       };
 
       const newElements = await buildDiagramElements(normalizedInput);
-      const currentElements = input.clearExisting ? [] : api.getSceneElements();
+      const existingElements = api.getSceneElements();
+      const previousElements = input.clearExisting
+        ? existingElements.map((el) => ({
+            ...el,
+            isDeleted: true,
+            updated: Date.now(),
+            version: el.version + 1,
+          }))
+        : existingElements;
 
-      const combined = [...currentElements, ...newElements];
+      const combined = [...previousElements, ...newElements];
 
       const updateAppState: any = {};
       if (input.theme) {
         const theme = getTheme(input.theme);
         updateAppState.viewBackgroundColor = theme.canvasBackground;
+        updateAppState.theme = theme.isDark === false ? "light" : "dark";
       }
 
       api.updateScene({
@@ -141,12 +150,12 @@ export function createDiagramGeneratorTool(getAPI: () => ExcalidrawImperativeAPI
       setTimeout(() => {
         api.scrollToContent(newElements, {
           fitToViewport: true,
-          viewportZoomFactor: 0.8,
-          canvasOffsets: { top: 100, bottom: 60, left: 40, right: 40 },
+          viewportZoomFactor: 0.85,
+          canvasOffsets: { top: 120, bottom: 80, left: 60, right: 60 },
           animate: true,
-          duration: 400,
+          duration: 350,
         });
-      }, 50);
+      }, 100);
 
       return {
         success: true,

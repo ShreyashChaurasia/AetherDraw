@@ -78,6 +78,7 @@ export function createApplyThemeTool(getAPI: () => ExcalidrawImperativeAPI | nul
         elements: updatedElements,
         appState: {
           viewBackgroundColor: theme.canvasBackground,
+          theme: theme.isDark === false ? "light" : "dark",
         },
       });
 

@@ -9,6 +9,7 @@ import { CopilotPanel } from "./components/Copilot/CopilotPanel";
 import { AboutModal } from "./components/UI/AboutModal";
 import { Toast } from "./components/UI/Toast";
 import type { ThemeName } from "./types";
+import { THEMES } from "./themes/palettes";
 import { webMCPRegistry } from "./webmcp/registry";
 import { TEMPLATES } from "./templates/catalog";
 
@@ -63,26 +64,38 @@ export const App: React.FC = () => {
     setCurrentTheme(theme);
     const modelContext = (document as any).modelContext;
     if (modelContext) {
-      await modelContext.executeTool("apply_theme", { theme });
+      try {
+        await modelContext.executeTool("apply_theme", { theme });
+      } catch (err) {
+        console.error("[Theme] Failed to apply theme:", err);
+      }
     }
   };
 
   const handleLayoutTrigger = async (direction: "TB" | "LR") => {
     const modelContext = (document as any).modelContext;
     if (modelContext) {
-      await modelContext.executeTool("apply_auto_layout", { direction, engine: "dagre" });
+      try {
+        await modelContext.executeTool("apply_auto_layout", { direction, engine: "dagre" });
+      } catch (err) {
+        console.error("[Layout] Failed to apply auto layout:", err);
+      }
     }
   };
 
   const handleExportTrigger = async (format: "svg" | "png") => {
     const modelContext = (document as any).modelContext;
     if (modelContext) {
-      const res = await modelContext.executeTool("export_canvas", { format, darkMode: true });
-      if (res?.dataUrl) {
-        const a = document.createElement("a");
-        a.href = res.dataUrl;
-        a.download = `aetherdraw_diagram.${format}`;
-        a.click();
+      try {
+        const res = await modelContext.executeTool("export_canvas", { format, darkMode: true });
+        if (res?.dataUrl) {
+          const a = document.createElement("a");
+          a.href = res.dataUrl;
+          a.download = `aetherdraw_diagram.${format}`;
+          a.click();
+        }
+      } catch (err) {
+        console.error("[Export] Failed to export canvas:", err);
       }
     }
   };
@@ -93,11 +106,15 @@ export const App: React.FC = () => {
 
     const template = TEMPLATES[templateKey];
     if (template) {
-      await modelContext.executeTool("create_diagram", {
-        ...template.spec,
-        theme: currentTheme,
-        clearExisting: true,
-      });
+      try {
+        await modelContext.executeTool("create_diagram", {
+          ...template.spec,
+          theme: currentTheme,
+          clearExisting: true,
+        });
+      } catch (err) {
+        console.error("[Template] Failed to load template:", err);
+      }
     }
   };
 
@@ -117,7 +134,7 @@ export const App: React.FC = () => {
       <div className="w-full h-full flex overflow-hidden relative">
         <main className="flex-1 h-full relative">
           <ExcalidrawCanvas
-            theme="dark"
+            theme={THEMES[currentTheme]?.isDark === false ? "light" : "dark"}
             onOpenAbout={() => handleOpenHelp("about")}
           />
         </main>
