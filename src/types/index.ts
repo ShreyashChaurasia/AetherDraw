@@ -32,6 +32,8 @@ export interface DiagramNodeInput {
   id: string;
   label: string;
   type?: ShapeType;
+  shape?: ShapeType | string;
+  category?: string;
   role?: string;
   x?: number;
   y?: number;
@@ -55,7 +57,8 @@ export interface DiagramSpec {
   title?: string;
   diagramType?: DiagramType;
   nodes: DiagramNodeInput[];
-  connections: DiagramConnectionInput[];
+  connections?: DiagramConnectionInput[];
+  edges?: DiagramConnectionInput[];
   layoutDirection?: LayoutDirection;
   theme?: ThemeName;
 }

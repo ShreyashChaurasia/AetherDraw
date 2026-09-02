@@ -2,6 +2,7 @@ import { convertToExcalidrawElements } from "@excalidraw/excalidraw";
 import type { ExcalidrawElement, NonDeletedExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type {
   DiagramSpec,
+  ShapeType,
   SemanticCanvasElement,
   SemanticCanvasState,
   CanvasBoundingBox,
@@ -50,7 +51,7 @@ export function getDimensionsForNode(label?: string, type?: string): { width: nu
       width: Math.max(DEFAULT_DECISION_WIDTH, Math.round(side)),
       height: Math.max(DEFAULT_DECISION_HEIGHT, Math.round(side)),
     };
-  } else if (type === "cylinder" || type === "ellipse") {
+  } else if (type === "cylinder" || type === "ellipse" || (type as string) === "database") {
     return {
       width: Math.max(DEFAULT_DATABASE_WIDTH, baseWidth + 24),
       height: Math.max(DEFAULT_DATABASE_HEIGHT, baseHeight + 16),
@@ -71,6 +72,7 @@ export function mapShapeTypeToExcalidraw(type?: string): "rectangle" | "diamond"
       return "diamond";
     case "ellipse":
     case "cylinder":
+    case "database":
     case "cloud":
     case "hexagon":
       return "ellipse";
@@ -84,10 +86,14 @@ export function mapShapeTypeToExcalidraw(type?: string): "rectangle" | "diamond"
 export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDeletedExcalidrawElement[]> {
   const theme = getTheme(spec.theme);
   const direction = spec.layoutDirection || "TB";
+  const nodes = spec.nodes || [];
+  const connections = spec.connections || spec.edges || [];
 
   // 1. Prepare layout nodes with dynamic label sizing
-  const layoutNodes = spec.nodes.map((node) => {
-    const dims = getDimensionsForNode(node.label, node.type);
+  const layoutNodes = nodes.map((node) => {
+    const rawType = (node.type || node.shape || "rectangle") as string;
+    const nodeType: ShapeType = rawType === "database" ? "cylinder" : (rawType as ShapeType);
+    const dims = getDimensionsForNode(node.label, nodeType);
     return {
       id: node.id,
       width: node.width || dims.width,
@@ -95,7 +101,7 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
     };
   });
 
-  const layoutEdges = spec.connections.map((conn) => ({
+  const layoutEdges = connections.map((conn) => ({
     source: conn.from,
     target: conn.to,
   }));
@@ -114,7 +120,7 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
 
   const skeletons: any[] = [];
   const nodeRects: NodeRect[] = [];
-  const yOffset = spec.title ? 130 : 50;
+  const yOffset = spec.title ? 170 : 80;
 
   // Optional Title banner
   if (spec.title) {
@@ -122,7 +128,7 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
       id: generateElementId("title"),
       type: "text",
       x: 80,
-      y: 40,
+      y: 80,
       text: spec.title,
       fontSize: 22,
       fontFamily: EXCALIDRAW_FONTS.NORMAL,
@@ -131,9 +137,11 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
   }
 
   // 3. Build shape skeletons
-  spec.nodes.forEach((node, idx) => {
+  nodes.forEach((node, idx) => {
+    const rawType = (node.type || node.shape || "rectangle") as string;
+    const nodeType: ShapeType = rawType === "database" ? "cylinder" : (rawType as ShapeType);
     const pos = layoutResult.positions.get(node.id) || { x: node.x ?? 100, y: node.y ?? 100 };
-    const dims = getDimensionsForNode(node.label, node.type);
+    const dims = getDimensionsForNode(node.label, nodeType);
     const width = node.width || dims.width;
     const height = node.height || dims.height;
 
@@ -148,7 +156,7 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
 
     skeletons.push({
       id: node.id,
-      type: mapShapeTypeToExcalidraw(node.type),
+      type: mapShapeTypeToExcalidraw(nodeType),
       x,
       y,
       width,
@@ -168,7 +176,7 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
   });
 
   // 4. Compute organic smooth cubic Bezier & obstacle-avoiding routes
-  const edgeSpecs: EdgeSpec[] = spec.connections.map((conn, idx) => ({
+  const edgeSpecs: EdgeSpec[] = connections.map((conn, idx) => ({
     id: generateElementId(`arrow_${idx}`),
     from: conn.from,
     to: conn.to,
@@ -180,7 +188,7 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
 
   edgeSpecs.forEach((edge, idx) => {
     const route = routeMap.get(edge.id);
-    const conn = spec.connections[idx];
+    const conn = connections[idx];
 
     if (route) {
       skeletons.push({

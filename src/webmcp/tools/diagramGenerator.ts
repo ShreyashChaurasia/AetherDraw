@@ -65,6 +65,24 @@ export function createDiagramGeneratorTool(getAPI: () => ExcalidrawImperativeAPI
             required: ["from", "to"],
           },
         },
+        edges: {
+          type: "array",
+          description: "Alias for connections: list of directed arrows between nodes",
+          items: {
+            type: "object",
+            properties: {
+              from: { type: "string", description: "Source node ID" },
+              to: { type: "string", description: "Target node ID" },
+              label: { type: "string", description: "Optional text label on the arrow" },
+              style: {
+                type: "string",
+                enum: ["solid", "dashed", "dotted"],
+                default: "solid",
+              },
+            },
+            required: ["from", "to"],
+          },
+        },
         layoutDirection: {
           type: "string",
           enum: ["TB", "LR", "BT", "RL"],
@@ -82,7 +100,7 @@ export function createDiagramGeneratorTool(getAPI: () => ExcalidrawImperativeAPI
           default: false,
         },
       },
-      required: ["nodes", "connections"],
+      required: ["nodes"],
     },
     annotations: {
       category: "generation",
@@ -93,7 +111,17 @@ export function createDiagramGeneratorTool(getAPI: () => ExcalidrawImperativeAPI
         throw new Error("AetherDraw canvas is not yet initialized");
       }
 
-      const newElements = await buildDiagramElements(input);
+      const normalizedInput: DiagramSpec = {
+        ...input,
+        connections: input.connections || input.edges || [],
+        nodes: (input.nodes || []).map((node) => ({
+          ...node,
+          type: (node.type || (node as any).shape || "rectangle") as any,
+          role: node.role || (node as any).category,
+        })),
+      };
+
+      const newElements = await buildDiagramElements(normalizedInput);
       const currentElements = input.clearExisting ? [] : api.getSceneElements();
 
       const combined = [...currentElements, ...newElements];
@@ -109,17 +137,23 @@ export function createDiagramGeneratorTool(getAPI: () => ExcalidrawImperativeAPI
         ...(Object.keys(updateAppState).length > 0 ? { appState: updateAppState } : {}),
       });
 
-      // Smooth zoom to fit newly created diagram
+      // Smooth zoom to fit newly created diagram with top clearance for the toolbar
       setTimeout(() => {
-        api.scrollToContent(newElements, { fitToViewport: true, animate: true, duration: 400 });
+        api.scrollToContent(newElements, {
+          fitToViewport: true,
+          viewportZoomFactor: 0.8,
+          canvasOffsets: { top: 100, bottom: 60, left: 40, right: 40 },
+          animate: true,
+          duration: 400,
+        });
       }, 50);
 
       return {
         success: true,
-        createdNodeCount: input.nodes.length,
-        createdConnectionCount: input.connections.length,
+        createdNodeCount: normalizedInput.nodes.length,
+        createdConnectionCount: (normalizedInput.connections || []).length,
         totalElements: newElements.length,
-        nodeIds: input.nodes.map((n) => n.id),
+        nodeIds: normalizedInput.nodes.map((n) => n.id),
       };
     },
   };
