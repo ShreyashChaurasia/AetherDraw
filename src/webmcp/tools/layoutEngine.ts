@@ -4,6 +4,7 @@ import type { LayoutDirection } from "../../types";
 import { computeDagreLayout } from "../../layout/dagre";
 import { computeElkLayout } from "../../layout/elk";
 import { computeSmartRoutes, type NodeRect, type EdgeSpec } from "../../layout/router";
+import { zoomToFitCanvas } from "../../lib/canvasUtils";
 
 export function createApplyAutoLayoutTool(getAPI: () => ExcalidrawImperativeAPI | null): ModelContextTool {
   return {
@@ -195,7 +196,9 @@ export function createApplyAutoLayoutTool(getAPI: () => ExcalidrawImperativeAPI 
       });
 
       api.updateScene({ elements: updatedElements as any });
-      api.scrollToContent(shapes, { fitToViewport: true, viewportZoomFactor: 0.85, animate: true, duration: 400 });
+      setTimeout(() => {
+        zoomToFitCanvas(api, updatedElements as any);
+      }, 50);
 
       return {
         success: true,

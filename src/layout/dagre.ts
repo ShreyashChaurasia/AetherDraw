@@ -1,6 +1,5 @@
 import dagre from "@dagrejs/dagre";
 import type { LayoutNodeInput, LayoutEdgeInput, LayoutOptions, LayoutResult } from "./types";
-import { DEFAULT_NODE_SEP, DEFAULT_RANK_SEP } from "../lib/constants";
 
 export function computeDagreLayout(
   nodes: LayoutNodeInput[],
@@ -10,15 +9,15 @@ export function computeDagreLayout(
   const g = new dagre.graphlib.Graph({ directed: true });
 
   const rankdir = options.direction || "TB";
-  const nodesep = options.nodeSpacing ?? (rankdir === "LR" ? 100 : DEFAULT_NODE_SEP);
-  const ranksep = options.rankSpacing ?? (rankdir === "LR" ? 160 : DEFAULT_RANK_SEP);
+  const nodesep = options.nodeSpacing ?? (rankdir === "LR" ? 75 : 70);
+  const ranksep = options.rankSpacing ?? (rankdir === "LR" ? 130 : 90);
 
   g.setGraph({
     rankdir,
     nodesep,
     ranksep,
-    marginx: 80,
-    marginy: 80,
+    marginx: 20,
+    marginy: 20,
     align: "UL",
     ranker: "network-simplex",
   });

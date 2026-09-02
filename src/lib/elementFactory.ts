@@ -111,8 +111,8 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
   if (spec.nodes.length > 0) {
     layoutResult = computeDagreLayout(layoutNodes, layoutEdges, {
       direction,
-      nodeSpacing: direction === "LR" ? 100 : 110,
-      rankSpacing: direction === "LR" ? 160 : 130,
+      nodeSpacing: direction === "LR" ? 75 : 70,
+      rankSpacing: direction === "LR" ? 130 : 90,
     });
   } else {
     layoutResult = { positions: new Map(), width: 0, height: 0 };
@@ -120,21 +120,7 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
 
   const skeletons: any[] = [];
   const nodeRects: NodeRect[] = [];
-  const yOffset = spec.title ? 170 : 80;
-
-  // Optional Title banner
-  if (spec.title) {
-    skeletons.push({
-      id: generateElementId("title"),
-      type: "text",
-      x: 80,
-      y: 80,
-      text: spec.title,
-      fontSize: 22,
-      fontFamily: EXCALIDRAW_FONTS.NORMAL,
-      strokeColor: theme.textColor,
-    });
-  }
+  const yOffset = spec.title ? 75 : 20;
 
   // 3. Build shape skeletons
   nodes.forEach((node, idx) => {
@@ -145,7 +131,7 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
     const width = node.width || dims.width;
     const height = node.height || dims.height;
 
-    const x = pos.x + 80;
+    const x = pos.x + 20;
     const y = pos.y + yOffset;
 
     nodeRects.push({ id: node.id, x, y, width, height });
@@ -174,6 +160,29 @@ export async function buildDiagramElements(spec: DiagramSpec): Promise<NonDelete
       },
     });
   });
+
+  // Optional Title banner centered above the diagram nodes
+  if (spec.title) {
+    let minNodeX = Infinity;
+    let maxNodeX = -Infinity;
+    nodeRects.forEach((nr) => {
+      minNodeX = Math.min(minNodeX, nr.x);
+      maxNodeX = Math.max(maxNodeX, nr.x + nr.width);
+    });
+    const diagramCenterX = nodeRects.length > 0 ? (minNodeX + maxNodeX) / 2 : 200;
+    const estTitleWidth = spec.title.length * 11;
+
+    skeletons.unshift({
+      id: generateElementId("title"),
+      type: "text",
+      x: Math.round(diagramCenterX - estTitleWidth / 2),
+      y: 20,
+      text: spec.title,
+      fontSize: 22,
+      fontFamily: EXCALIDRAW_FONTS.NORMAL,
+      strokeColor: theme.textColor,
+    });
+  }
 
   // 4. Compute organic smooth cubic Bezier & obstacle-avoiding routes
   const edgeSpecs: EdgeSpec[] = connections.map((conn, idx) => ({

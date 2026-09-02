@@ -3,6 +3,7 @@ import type { ModelContextTool } from "../types";
 import type { DiagramSpec } from "../../types";
 import { buildDiagramElements } from "../../lib/elementFactory";
 import { getTheme } from "../../themes/palettes";
+import { zoomToFitCanvas } from "../../lib/canvasUtils";
 
 export function createDiagramGeneratorTool(getAPI: () => ExcalidrawImperativeAPI | null): ModelContextTool {
   return {
@@ -150,16 +151,10 @@ export function createDiagramGeneratorTool(getAPI: () => ExcalidrawImperativeAPI
         ...(Object.keys(updateAppState).length > 0 ? { appState: updateAppState } : {}),
       });
 
-      // Smooth zoom to fit newly created diagram with top clearance for the toolbar
+      // Fit newly created diagram to screen perfectly with toolbar clearance
       setTimeout(() => {
-        api.scrollToContent(newElements, {
-          fitToViewport: true,
-          viewportZoomFactor: 0.85,
-          canvasOffsets: { top: 120, bottom: 80, left: 60, right: 60 },
-          animate: true,
-          duration: 350,
-        });
-      }, 100);
+        zoomToFitCanvas(api, newElements);
+      }, 50);
 
       return {
         success: true,
