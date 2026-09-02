@@ -1,8 +1,12 @@
 import React, { useCallback, useEffect } from "react";
 import { Excalidraw, MainMenu } from "@excalidraw/excalidraw";
-import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+import type {
+  ExcalidrawImperativeAPI,
+  ExcalidrawInitialDataState,
+} from "@excalidraw/excalidraw/types";
 import "@excalidraw/excalidraw/index.css";
 import { webMCPRegistry } from "../../webmcp/registry";
+import { loadSceneFromStorage, saveSceneToStorage } from "../../lib/storage";
 import {
   ExternalLink,
   BookOpen,
@@ -59,16 +63,36 @@ export const ExcalidrawCanvas: React.FC<ExcalidrawCanvasProps> = ({
     [onApiReady]
   );
 
+  const initialDataState = React.useMemo<ExcalidrawInitialDataState>(() => {
+    const saved = loadSceneFromStorage();
+    if (saved && saved.elements && saved.elements.length > 0) {
+      return {
+        elements: saved.elements,
+        appState: {
+          theme: "dark",
+          viewBackgroundColor: "#ffffff",
+          ...saved.appState,
+        },
+        files: saved.files,
+        scrollToContent: true,
+      };
+    }
+    return {
+      appState: {
+        theme: "dark",
+        viewBackgroundColor: "#ffffff",
+      },
+    };
+  }, []);
+
   return (
     <div className="w-full h-full relative overflow-hidden">
       <Excalidraw
         excalidrawAPI={handleExcalidrawAPI}
         theme={theme}
-        initialData={{
-          appState: {
-            theme: "dark",
-            viewBackgroundColor: "#ffffff",
-          },
+        initialData={initialDataState}
+        onChange={(elements, appState, files) => {
+          saveSceneToStorage(elements, appState, files);
         }}
         UIOptions={{
           canvasActions: {
