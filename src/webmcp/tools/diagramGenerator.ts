@@ -139,6 +139,9 @@ export function createDiagramGeneratorTool(getAPI: () => ExcalidrawImperativeAPI
         const theme = getTheme(input.theme);
         updateAppState.viewBackgroundColor = theme.canvasBackground;
         updateAppState.theme = theme.isDark === false ? "light" : "dark";
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("aetherdraw:themechange", { detail: { theme: input.theme } }));
+        }
       }
 
       api.updateScene({

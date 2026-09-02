@@ -53,6 +53,19 @@ export class WebMCPRegistry {
     return [...this.registeredTools];
   }
 
+  public async executeTool(name: string, parameters: any = {}): Promise<any> {
+    if (this.modelContext && typeof this.modelContext.executeTool === "function") {
+      return await this.modelContext.executeTool(name, parameters);
+    }
+    const tool = this.registeredTools.find((t) => t.name === name);
+    if (tool && typeof tool.execute === "function") {
+      return await tool.execute(parameters);
+    }
+    throw new Error(`WebMCP Tool "${name}" is not registered`);
+  }
+
+  private registeredToolNames: Set<string> = new Set();
+
   private registerAllTools(): void {
     if (!this.modelContext) return;
 
@@ -82,7 +95,13 @@ export class WebMCPRegistry {
     this.registeredTools = tools;
 
     for (const tool of tools) {
+      if (this.registeredToolNames.has(tool.name)) {
+        try {
+          this.modelContext.unregisterTool(tool.name);
+        } catch (_) {}
+      }
       this.modelContext.registerTool(tool);
+      this.registeredToolNames.add(tool.name);
     }
 
     console.log(`[WebMCP] Successfully registered ${tools.length} tools to document.modelContext`);

@@ -82,6 +82,10 @@ export function createApplyThemeTool(getAPI: () => ExcalidrawImperativeAPI | nul
         },
       });
 
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("aetherdraw:themechange", { detail: { theme: input.theme } }));
+      }
+
       return {
         success: true,
         appliedTheme: theme.name,

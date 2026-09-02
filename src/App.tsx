@@ -56,58 +56,58 @@ export const App: React.FC = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  // Listen to theme change events from WebMCP tools (e.g. when agent runs create_diagram or apply_theme)
+  useEffect(() => {
+    const handleThemeChange = (e: any) => {
+      const newTheme = e.detail?.theme;
+      if (newTheme && THEMES[newTheme as ThemeName]) {
+        setCurrentTheme(newTheme as ThemeName);
+      }
+    };
+    window.addEventListener("aetherdraw:themechange", handleThemeChange);
+    return () => window.removeEventListener("aetherdraw:themechange", handleThemeChange);
+  }, []);
+
   const handleToggleTab = (tab: "inspector" | "copilot") => {
     setActiveTab((prev) => (prev === tab ? null : tab));
   };
 
   const handleThemeSelect = async (theme: ThemeName) => {
     setCurrentTheme(theme);
-    const modelContext = (document as any).modelContext;
-    if (modelContext) {
-      try {
-        await modelContext.executeTool("apply_theme", { theme });
-      } catch (err) {
-        console.error("[Theme] Failed to apply theme:", err);
-      }
+    try {
+      await webMCPRegistry.executeTool("apply_theme", { theme });
+    } catch (err) {
+      console.error("[Theme] Failed to apply theme:", err);
     }
   };
 
   const handleLayoutTrigger = async (direction: "TB" | "LR") => {
-    const modelContext = (document as any).modelContext;
-    if (modelContext) {
-      try {
-        await modelContext.executeTool("apply_auto_layout", { direction, engine: "dagre" });
-      } catch (err) {
-        console.error("[Layout] Failed to apply auto layout:", err);
-      }
+    try {
+      await webMCPRegistry.executeTool("apply_auto_layout", { direction, engine: "dagre" });
+    } catch (err) {
+      console.error("[Layout] Failed to apply auto layout:", err);
     }
   };
 
   const handleExportTrigger = async (format: "svg" | "png") => {
-    const modelContext = (document as any).modelContext;
-    if (modelContext) {
-      try {
-        const res = await modelContext.executeTool("export_canvas", { format, darkMode: true });
-        if (res?.dataUrl) {
-          const a = document.createElement("a");
-          a.href = res.dataUrl;
-          a.download = `aetherdraw_diagram.${format}`;
-          a.click();
-        }
-      } catch (err) {
-        console.error("[Export] Failed to export canvas:", err);
+    try {
+      const res = await webMCPRegistry.executeTool("export_canvas", { format, darkMode: true });
+      if (res?.dataUrl) {
+        const a = document.createElement("a");
+        a.href = res.dataUrl;
+        a.download = `aetherdraw_diagram.${format}`;
+        a.click();
       }
+    } catch (err) {
+      console.error("[Export] Failed to export canvas:", err);
     }
   };
 
   const handleTemplateSelect = async (templateKey: string) => {
-    const modelContext = (document as any).modelContext;
-    if (!modelContext) return;
-
     const template = TEMPLATES[templateKey];
     if (template) {
       try {
-        await modelContext.executeTool("create_diagram", {
+        await webMCPRegistry.executeTool("create_diagram", {
           ...template.spec,
           theme: currentTheme,
           clearExisting: true,
