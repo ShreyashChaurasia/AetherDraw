@@ -1,0 +1,123 @@
+import fs from 'fs';
+import path from 'path';
+
+const manifest = {
+  name: "AetherDraw",
+  description: "Agent-Native Infinite Whiteboard for Visual Thinking powered by WebMCP",
+  protocol: "WebMCP",
+  version: "1.0.0",
+  tools: [
+    {
+      name: "create_diagram",
+      description: "Generates a complete, beautifully organized diagram on the canvas in one shot. Supports system architectures, flowcharts, ERDs, mindmaps, and sequence diagrams. Automatically applies graph layout algorithms (Dagre) to avoid overlapping boxes and binds connecting arrows.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "Optional diagram title shown at the top" },
+          diagramType: {
+            type: "string",
+            enum: ["architecture", "flowchart", "mindmap", "erd", "sequence", "user_journey"],
+            default: "architecture"
+          },
+          theme: {
+            type: "string",
+            enum: ["default", "nord", "cyberpunk", "pastel", "blueprint", "minimal_dark", "solarized"],
+            default: "nord"
+          },
+          layoutDirection: { type: "string", enum: ["TB", "LR", "BT", "RL"], default: "TB" },
+          nodes: {
+            type: "array",
+            description: "List of nodes to generate",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: "string", description: "Unique node ID" },
+                label: { type: "string", description: "Visible text label" },
+                shape: { type: "string", enum: ["rectangle", "diamond", "ellipse", "database", "cloud"], default: "rectangle" },
+                category: { type: "string", description: "Role or layer, e.g. entry, service, storage" }
+              },
+              required: ["id", "label"]
+            }
+          },
+          edges: {
+            type: "array",
+            description: "Directed arrows connecting nodes",
+            items: {
+              type: "object",
+              properties: {
+                from: { type: "string", description: "Source node ID" },
+                to: { type: "string", description: "Target node ID" },
+                label: { type: "string", description: "Optional label on the arrow" },
+                style: { type: "string", enum: ["solid", "dashed", "dotted"], default: "solid" }
+              },
+              required: ["from", "to"]
+            }
+          }
+        },
+        required: ["nodes"]
+      }
+    },
+    {
+      name: "get_canvas_state",
+      description: "Returns the structured semantic AST of the canvas including all nodes, text, arrows, and bounding box dimensions."
+    },
+    {
+      name: "find_elements",
+      description: "Searches the canvas for elements by text query or shape type.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Search term" }
+        },
+        required: ["query"]
+      }
+    },
+    {
+      name: "apply_auto_layout",
+      description: "Recomputes graph positioning and routes arrows using Dagre layout algorithm.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          direction: { type: "string", enum: ["TB", "LR", "BT", "RL"], default: "TB" }
+        }
+      }
+    },
+    {
+      name: "apply_theme",
+      description: "Applies a coordinated color palette across canvas elements and background.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          theme: { type: "string", enum: ["default", "nord", "cyberpunk", "pastel", "blueprint", "minimal_dark", "solarized"] }
+        },
+        required: ["theme"]
+      }
+    },
+    {
+      name: "export_canvas",
+      description: "Exports canvas to PNG data URL or SVG markup string.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          format: { type: "string", enum: ["png", "svg"], default: "png" }
+        }
+      }
+    }
+  ]
+};
+
+// 1. Write to public/webmcp.json
+fs.writeFileSync(path.resolve('public/webmcp.json'), JSON.stringify(manifest, null, 2), 'utf-8');
+console.log('Saved public/webmcp.json');
+
+// 2. Inject declarative JSON-LD script into index.html
+let html = fs.readFileSync(path.resolve('index.html'), 'utf-8');
+const scriptTag = `<script type="application/model-context+json" id="webmcp-manifest">
+${JSON.stringify(manifest, null, 2)}
+</script>`;
+
+if (!html.includes('id="webmcp-manifest"')) {
+  html = html.replace('</head>', `  ${scriptTag}\n  </head>`);
+  fs.writeFileSync(path.resolve('index.html'), html, 'utf-8');
+  console.log('Injected WebMCP declarative manifest into index.html');
+}
