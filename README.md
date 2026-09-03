@@ -84,7 +84,7 @@ WebMCP (`document.modelContext.registerTool`) provides the exact missing link: i
 
 ## Attribution & Technology Foundation
 
-AetherDraw is built on top of and extends the open-source **[Excalidraw](https://github.com/excalidraw/excalidraw)** canvas engine (MIT License). We express deep gratitude to the Excalidraw team and community for building the gold standard of collaborative virtual whiteboards.
+AetherDraw is built on top of and extends the open-source **[Excalidraw](https://github.com/excalidraw/excalidraw)** canvas engine (MIT License). Deep gratitude to the Excalidraw team and community for building the gold standard of collaborative virtual whiteboards.
 
 AetherDraw extends Excalidraw into an **agent-native spatial environment** by introducing:
 1. **W3C Web Model Context Protocol (WebMCP):** Standardized tool registration layer on `document.modelContext`.
