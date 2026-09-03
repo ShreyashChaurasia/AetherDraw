@@ -275,6 +275,79 @@ export function computeSmartRoutes(
     }
 
     // ----------------------------------------------------
+    // CASE A.5: HORIZONTAL PEERS (Same vertical tier, side-by-side)
+    // ----------------------------------------------------
+    const verticalOverlap = Math.max(
+      0,
+      Math.min(src.y + src.height, dst.y + dst.height) - Math.max(src.y, dst.y)
+    );
+    const srcCenterY = src.y + src.height / 2;
+    const dstCenterY = dst.y + dst.height / 2;
+    const isHorizontalPeer =
+      verticalOverlap > 10 ||
+      Math.abs(srcCenterY - dstCenterY) <= Math.max(src.height, dst.height) * 0.9;
+
+    if (direction === "TB" && isHorizontalPeer) {
+      // dst is to the right of src
+      if (dst.x >= src.x + src.width - 20) {
+        const startX = src.x + src.width;
+        const startY = src.y + src.height * outFraction;
+        const endX = dst.x;
+        const endY = dst.y + dst.height * inFraction;
+        const deltaX = endX - startX;
+        const deltaY = endY - startY;
+
+        if (Math.abs(deltaY) < 12) {
+          routes.set(edge.id, packageRoute(startX, startY, [
+            [0, 0],
+            [Math.round(deltaX), 0],
+          ]));
+        } else {
+          const ctrl1: [number, number] = [startX + deltaX * 0.45, startY];
+          const ctrl2: [number, number] = [endX - deltaX * 0.45, endY];
+          const smoothPoints = sampleCubicBezier(
+            [startX, startY],
+            ctrl1,
+            ctrl2,
+            [endX, endY],
+            8
+          );
+          routes.set(edge.id, packageRoute(startX, startY, smoothPoints));
+        }
+        continue;
+      }
+
+      // dst is to the left of src
+      if (src.x >= dst.x + dst.width - 20) {
+        const startX = src.x;
+        const startY = src.y + src.height * outFraction;
+        const endX = dst.x + dst.width;
+        const endY = dst.y + dst.height * inFraction;
+        const deltaX = endX - startX;
+        const deltaY = endY - startY;
+
+        if (Math.abs(deltaY) < 12) {
+          routes.set(edge.id, packageRoute(startX, startY, [
+            [0, 0],
+            [Math.round(deltaX), 0],
+          ]));
+        } else {
+          const ctrl1: [number, number] = [startX + deltaX * 0.45, startY];
+          const ctrl2: [number, number] = [endX - deltaX * 0.45, endY];
+          const smoothPoints = sampleCubicBezier(
+            [startX, startY],
+            ctrl1,
+            ctrl2,
+            [endX, endY],
+            8
+          );
+          routes.set(edge.id, packageRoute(startX, startY, smoothPoints));
+        }
+        continue;
+      }
+    }
+
+    // ----------------------------------------------------
     // CASE B: TOP-TO-BOTTOM (TB) HIERARCHY FLOW
     // ----------------------------------------------------
     if (direction === "TB") {

@@ -169,12 +169,12 @@ export function createConnectElementsTool(getAPI: () => ExcalidrawImperativeAPI 
         }
       });
 
-      const arrows = convertToExcalidrawElements(skeletons, { regenerateIds: false });
-      api.updateScene({ elements: [...elements, ...arrows] });
+      const allElements = convertToExcalidrawElements([...elements, ...skeletons], { regenerateIds: false });
+      api.updateScene({ elements: allElements });
 
       return {
         success: true,
-        connectedCount: arrows.length,
+        connectedCount: skeletons.length,
       };
     },
   };
