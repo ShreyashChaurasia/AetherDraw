@@ -152,8 +152,6 @@ export function createConnectElementsTool(getAPI: () => ExcalidrawImperativeAPI 
             strokeStyle: conn.strokeStyle || "solid",
             roughness: 1,
             roundness: { type: 2 },
-            start: { id: edge.from },
-            end: { id: edge.to },
             startArrowhead: conn.startArrowhead && conn.startArrowhead !== "none" ? conn.startArrowhead : null,
             endArrowhead: conn.endArrowhead && conn.endArrowhead !== "none" ? conn.endArrowhead : "arrow",
             ...(conn.label
@@ -169,8 +167,43 @@ export function createConnectElementsTool(getAPI: () => ExcalidrawImperativeAPI 
         }
       });
 
-      const allElements = convertToExcalidrawElements([...elements, ...skeletons], { regenerateIds: false });
-      api.updateScene({ elements: allElements });
+      // 1. Convert ONLY the arrow skeletons into Excalidraw elements
+      // (Never pass existing elements here, so all existing node text positions and alignments remain 100% untouched)
+      const convertedArrows = convertToExcalidrawElements(skeletons, { regenerateIds: false });
+
+      // 2. Attach bindings directly to the arrows
+      const arrowMap = new Map(edgeSpecs.map((e) => [e.id, e]));
+      convertedArrows.forEach((arr) => {
+        if (arr.type === "arrow") {
+          const spec = arrowMap.get(arr.id);
+          if (spec) {
+            (arr as any).startBinding = { elementId: spec.from, focus: 0, gap: 1 };
+            (arr as any).endBinding = { elementId: spec.to, focus: 0, gap: 1 };
+          }
+        }
+      });
+
+      // 3. Update boundElements on connected shapes without modifying their geometry or text
+      const updatedElements = elements.map((el) => {
+        const matchingEdges = edgeSpecs.filter((e) => e.from === el.id || e.to === el.id);
+        if (matchingEdges.length === 0) return el;
+
+        const existing = (el as any).boundElements || [];
+        const newBounds = matchingEdges
+          .filter((e) => !existing.some((b: any) => b.id === e.id))
+          .map((e) => ({ id: e.id, type: "arrow" }));
+
+        if (newBounds.length === 0) return el;
+
+        return {
+          ...el,
+          boundElements: [...existing, ...newBounds],
+          version: el.version + 1,
+          updated: Date.now(),
+        };
+      });
+
+      api.updateScene({ elements: [...updatedElements, ...convertedArrows] });
 
       return {
         success: true,
