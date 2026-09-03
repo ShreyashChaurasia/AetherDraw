@@ -48,6 +48,40 @@ Visual whiteboard tools (Excalidraw, Miro, FigJam) are among the most difficult 
 
 ---
 
+## DevPost Submission Overview
+
+### 1. Why this use case is a strong fit for WebMCP
+Standard web applications have HTML DOM trees with semantic elements (`<button>`, `<input>`, `<h1>`) that AI agents can somewhat inspect. In contrast, 2D spatial canvas applications (virtual whiteboards, architecture sketchpads, flowchart editors) render everything to an opaque, flat HTML5 `<canvas>` element.
+
+For an AI agent, raw canvas elements are complete black boxes. Without WebMCP, agents must rely on slow screenshot loops, guess pixel coordinates, and simulate fragile mouse drag events that drift, overlap shapes, and fail on window resizing. 
+
+WebMCP (`document.modelContext.registerTool`) provides the exact missing link: it allows the web application to expose its internal scene AST, geometric bounds, and manipulation methods directly to AI agents as typed, schema-validated browser tools. AetherDraw proves how WebMCP transforms an otherwise opaque canvas into a responsive, deterministic spatial environment where agents can construct diagrams, route smart connections, and analyze spatial layout in single-digit milliseconds.
+
+### 2. How it creates a better user experience
+* **Instant, Deterministic Execution:** Instead of waiting 20-30 seconds for an agent to guess coordinates or stream SVG fragments, complete architectures render in 5-20ms.
+* **Algorithmic Layouts with Zero Node Collisions:** Integrated Dagre (Sugiyama DAG) and ELK.js layout engines prevent overlapping boxes and messy spaghetti lines.
+* **Automatic Viewport Fit-Screen Framing:** Diagrams dynamically calculate viewport bounds and camera zoom so the complete diagram fits the screen at up to 100% scale with clean toolbar clearance.
+* **Organic Bezier Arrow Routing:** Connectors route smoothly around obstacle shapes and use outer-gutter channels for cyclic feedback loops.
+* **Autosave Session Persistence:** Canvas elements, pan coordinates, zoom scale, and theme settings persist across browser reloads via debounced local storage.
+
+### 3. What people and agents can do together that was difficult or impossible before
+* **True Bi-Directional Co-Creation:** A human can sketch rough ideas or draw two service boxes with the pen tool. The agent executes `get_canvas_state`, reads the spatial positions and labels of the human's shapes, and expands the system with databases, caches, and queues, cleanly binding new arrows to the human's drawn nodes.
+* **Context-Aware Selection Editing:** A human can highlight a group of shapes, and the agent calls `get_selected_elements` to inspect, restyle, relabel, or re-route that specific cluster without touching the rest of the canvas.
+* **Instant Whiteboard Cleanup:** When a collaborative brainstorm gets chaotic, the agent invokes `apply_auto_layout` to organize hundreds of scattered elements into an organized hierarchical diagram with zero overlapping boxes.
+* **Harmonious One-Click Theming:** Humans and agents can transform the entire visual palette across 7 handcrafted themes (`apply_theme`: Classic, Nordic Frost, Cyberpunk Neon, Pastel Dream, Blueprint, Minimal Dark, Solarized).
+
+### 4. How WebMCP was implemented
+* **Native Protocol & Polyfill Bridge:** Implemented on the W3C WebMCP draft using `@mcp-b/webmcp-polyfill` to register tools directly on `document.modelContext`.
+* **Layered 11-Tool Architecture:**
+  - **Inspection (Layer A):** `get_canvas_state`, `get_selected_elements`, `find_elements` serialize the Excalidraw scene graph into structured ASTs with coordinates, dimensions, bounds, and connection maps.
+  - **Generation (Layer B):** `create_diagram` accepts high-level nodes and edges, runs hierarchical graph layout, centers titles, and triggers `zoomToFitCanvas`.
+  - **Mutation (Layer C):** `add_elements`, `update_elements`, `delete_elements`, `connect_elements` perform atomic shape additions, updates, deletions, and smart Bezier arrow routing.
+  - **Layout & Styling (Layer D):** `apply_auto_layout` reorganizes scene coordinates using Dagre or ELK.js; `apply_theme` applies color palettes; `export_canvas` creates PNG/SVG exports.
+* **Live Developer Inspector & Telemetry:** Built an in-app drawer displaying tool schemas, live event execution streams, and millisecond latency timers.
+* **Static Discovery Manifest:** Published at `/webmcp.json` following WebMCP discovery guidelines.
+
+---
+
 ## Attribution & Technology Foundation
 
 AetherDraw is built on top of and extends the open-source **[Excalidraw](https://github.com/excalidraw/excalidraw)** canvas engine (MIT License). We express deep gratitude to the Excalidraw team and community for building the gold standard of collaborative virtual whiteboards.
