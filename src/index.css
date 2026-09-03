@@ -67,3 +67,15 @@
   pointer-events: none !important;
   opacity: 0 !important;
 }
+
+/* Strictly hide Excalidraw default top-right library button to eliminate overlap with AetherDraw TopNav */
+.excalidraw .layer-ui__wrapper__top-right,
+.excalidraw .layer-ui__wrapper__top-right .default-sidebar-trigger,
+.excalidraw .default-sidebar-trigger,
+.excalidraw .sidebar-trigger__label-element {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
+

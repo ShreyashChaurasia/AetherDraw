@@ -15,6 +15,7 @@ import {
   Terminal,
   Video,
   Grid,
+  Library,
 } from "lucide-react";
 
 const GithubIcon: React.FC = () => (
@@ -108,6 +109,16 @@ export const ExcalidrawCanvas: React.FC<ExcalidrawCanvasProps> = ({
           <MainMenu.DefaultItems.Export />
           <MainMenu.DefaultItems.ClearCanvas />
           <MainMenu.Separator />
+          <MainMenu.Item
+            icon={<Library className="w-4 h-4 text-indigo-400" />}
+            onClick={() => {
+              if (apiRef.current) {
+                (apiRef.current as any).toggleSidebar({ name: "default" });
+              }
+            }}
+          >
+            Component Library
+          </MainMenu.Item>
           <MainMenu.DefaultItems.ToggleTheme />
           <MainMenu.Item
             icon={<Grid className="w-4 h-4 text-indigo-400" />}
