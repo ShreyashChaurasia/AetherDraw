@@ -322,15 +322,15 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, initial
                   </a>
 
                   <a
-                    href="https://webmcp.devpost.com/"
+                    href="https://devpost.com/software/aetherdraw"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2.5 p-3 rounded-lg bg-neutral-950 border border-neutral-800 hover:border-emerald-500/50 hover:bg-neutral-800/40 transition-all text-neutral-200"
                   >
                     <ExternalLink className="w-4 h-4 text-emerald-400 shrink-0" />
                     <div>
-                      <div className="font-semibold text-xs">DevPost WebMCP</div>
-                      <div className="text-[10px] text-neutral-400">Hackathon Challenge</div>
+                      <div className="font-semibold text-xs">DevPost Project</div>
+                      <div className="text-[10px] text-neutral-400">Official Submission</div>
                     </div>
                   </a>
 

@@ -4,6 +4,7 @@
 > *Built for the DevPost WebMCP Challenge 2026*
 
 [![WebMCP Challenge](https://img.shields.io/badge/WebMCP-Challenge%202026-6366f1?style=for-the-badge&logo=w3c&logoColor=white)](https://webmcp.devpost.com/)
+[![Devpost](https://img.shields.io/badge/Devpost-AetherDraw-003E54?style=for-the-badge&logo=devpost&logoColor=white)](https://devpost.com/software/aetherdraw)
 [![YouTube Demo](https://img.shields.io/badge/YouTube%20Demo-Watch%20Video-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/Eb6vBb6xG7I)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-aetherdraw.onrender.com-46E3B7?style=for-the-badge)](https://aetherdraw.onrender.com)
 [![WebMCP Manifest](https://img.shields.io/badge/WebMCP%20Manifest-webmcp.json-blue?style=for-the-badge)](https://aetherdraw.onrender.com/webmcp.json)
@@ -17,6 +18,7 @@
 ## Live Links & Quick Access
 
 * **Live Web Application:** [https://aetherdraw.onrender.com](https://aetherdraw.onrender.com)
+* **DevPost Project Page:** [https://devpost.com/software/aetherdraw](https://devpost.com/software/aetherdraw)
 * **YouTube Demo Walkthrough:** [https://youtu.be/Eb6vBb6xG7I](https://youtu.be/Eb6vBb6xG7I)
 * **Live WebMCP Manifest:** [https://aetherdraw.onrender.com/webmcp.json](https://aetherdraw.onrender.com/webmcp.json)
 * **Source Repository:** [https://github.com/ShreyashChaurasia/AetherDraw](https://github.com/ShreyashChaurasia/AetherDraw)
