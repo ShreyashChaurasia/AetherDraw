@@ -348,7 +348,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, initial
                   </a>
 
                   <a
-                    href="https://www.youtube.com/"
+                    href="https://youtu.be/Eb6vBb6xG7I"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2.5 p-3 rounded-lg bg-neutral-950 border border-neutral-800 hover:border-red-500/50 hover:bg-neutral-800/40 transition-all text-neutral-200"

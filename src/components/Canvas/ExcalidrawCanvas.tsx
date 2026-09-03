@@ -203,9 +203,9 @@ export const ExcalidrawCanvas: React.FC<ExcalidrawCanvasProps> = ({
             Built with Excalidraw Core
           </MainMenu.ItemLink>
 
-          {/* Video Demo Link (Placeholder preserved as requested) */}
+          {/* Video Demo Link */}
           <MainMenu.ItemLink
-            href="https://www.youtube.com/"
+            href="https://youtu.be/Eb6vBb6xG7I"
             target="_blank"
             rel="noopener noreferrer"
             icon={<Video className="w-4 h-4 text-red-400" />}

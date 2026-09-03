@@ -4,6 +4,7 @@
 > *Built for the DevPost WebMCP Challenge 2026*
 
 [![WebMCP Challenge](https://img.shields.io/badge/WebMCP-Challenge%202026-6366f1?style=for-the-badge&logo=w3c&logoColor=white)](https://webmcp.devpost.com/)
+[![YouTube Demo](https://img.shields.io/badge/YouTube%20Demo-Watch%20Video-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/Eb6vBb6xG7I)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-aetherdraw.onrender.com-46E3B7?style=for-the-badge)](https://aetherdraw.onrender.com)
 [![WebMCP Manifest](https://img.shields.io/badge/WebMCP%20Manifest-webmcp.json-blue?style=for-the-badge)](https://aetherdraw.onrender.com/webmcp.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg?style=for-the-badge)](LICENSE)
@@ -16,9 +17,20 @@
 ## Live Links & Quick Access
 
 * **Live Web Application:** [https://aetherdraw.onrender.com](https://aetherdraw.onrender.com)
+* **YouTube Demo Walkthrough:** [https://youtu.be/Eb6vBb6xG7I](https://youtu.be/Eb6vBb6xG7I)
 * **Live WebMCP Manifest:** [https://aetherdraw.onrender.com/webmcp.json](https://aetherdraw.onrender.com/webmcp.json)
 * **Source Repository:** [https://github.com/ShreyashChaurasia/AetherDraw](https://github.com/ShreyashChaurasia/AetherDraw)
 * **WebMCP Challenge:** [https://webmcp.devpost.com](https://webmcp.devpost.com)
+
+---
+
+## Demo Video & Walkthrough
+
+Watch the complete demonstration showing WebMCP tool registration, deterministic graph generation, and bi-directional human-agent collaboration:
+
+[![AetherDraw Demo Video](https://img.youtube.com/vi/Eb6vBb6xG7I/maxresdefault.jpg)](https://youtu.be/Eb6vBb6xG7I)
+
+Direct Link: [https://youtu.be/Eb6vBb6xG7I](https://youtu.be/Eb6vBb6xG7I)
 
 ---
 

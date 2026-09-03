@@ -51,7 +51,7 @@ function patchFile(filePath) {
   if (/https?:\/\/youtube\.com\/@excalidraw/.test(content)) {
     content = content.replace(
       /https?:\/\/youtube\.com\/@excalidraw/g,
-      'https://youtube.com'
+      'https://youtu.be/Eb6vBb6xG7I'
     );
     modified = true;
   }
